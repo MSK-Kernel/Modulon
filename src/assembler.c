@@ -1031,7 +1031,7 @@ static void copy_into(uint8_t *file, uint64_t offset, const void *data, size_t s
 	memcpy(file + offset, data, size);
 }
 
-void write_independent_elf(const char *path, AsmImage *array, bool needs_x11, char **libraries, size_t library_count)
+void write_independent_elf(const char *path, AsmImage *array, char **libraries, size_t library_count)
 {
 	const uint64_t base = 0x400000;
 	const char interpreter[] = "/lib64/ld-linux-x86-64.so.2";
@@ -1055,7 +1055,7 @@ void write_independent_elf(const char *path, AsmImage *array, bool needs_x11, ch
 	uint32_t object_count = 0;
 	uint32_t bucket_count;
 	uint32_t dynamic_count;
-	uint32_t needed_count = 1 + (needs_x11 ? 1 : 0) + (uint32_t)library_count;
+	uint32_t needed_count = 1 + (uint32_t)library_count;
 	uint32_t *needed_offsets;
 	uint8_t *file;
 	Elf64_Ehdr *ehdr;
@@ -1071,14 +1071,9 @@ void write_independent_elf(const char *path, AsmImage *array, bool needs_x11, ch
 	needed_offsets[0] = dynstr.n;
 	bputs(&dynstr, "libc.so.6");
 	put_u8(&dynstr, 0);
-	if(needs_x11) {
-		needed_offsets[1] = dynstr.n;
-		bputs(&dynstr, "libX11.so.6");
-		put_u8(&dynstr, 0);
-	}
 	for(index_1 = 0; index_1 < library_count; index_1++) {
 		char library_name[256];
-		uint32_t index = 1 + (needs_x11 ? 1 : 0) + (uint32_t)index_1;
+		uint32_t index = 1 + (uint32_t)index_1;
 		const char *argument = libraries[index_1];
 		if(!strncmp(argument, "-l", 2))
 			argument += 2;

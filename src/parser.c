@@ -132,21 +132,33 @@ static bool type_start(Parser *parser)
 	const char *character = ptok(parser)->v;
 	if(find_alias(parser->prog, character))
 		return true;
-	return !strcmp(character, "VD") || !strcmp(character, "C") || !strcmp(character, "CC") ||
-	       !strcmp(character, "INT") || !strcmp(character, "ULL") || !strcmp(character, "DB") || !strcmp(character, "L") ||
-	       !strcmp(character, "S") || !strcmp(character, "U") || !strcmp(character, "void") ||
-	       !strcmp(character, "char") || !strcmp(character, "short") || !strcmp(character, "int") ||
-	       !strcmp(character, "double") ||
-	       !strcmp(character, "FILE") || !strcmp(character, "Display") || !strcmp(character, "Window") ||
-	       !strcmp(character, "GC") || !strcmp(character, "Font") || !strcmp(character, "XEvent") ||
+	return !strcmp(character, "void") || !strcmp(character, "_Bool") ||
+	       !strcmp(character, "bool") || !strcmp(character, "char") ||
+	       !strcmp(character, "short") || !strcmp(character, "int") ||
+	       !strcmp(character, "long") || !strcmp(character, "float") ||
+	       !strcmp(character, "double") || !strcmp(character, "signed") ||
+	       !strcmp(character, "unsigned") || !strcmp(character, "const") ||
+	       !strcmp(character, "volatile") || !strcmp(character, "restrict") ||
+	       !strcmp(character, "struct") ||
+	       !strcmp(character, "FILE") || !strcmp(character, "Display") ||
+	       !strcmp(character, "Window") || !strcmp(character, "GC") ||
+	       !strcmp(character, "Font") || !strcmp(character, "XEvent") ||
 	       !strcmp(character, "va_list") || !strcmp(character, "size_t") ||
-	       !strcmp(character, "uint8_t") || !strcmp(character, "uint16_t") ||
-	       !strcmp(character, "uint32_t") || !strcmp(character, "uint64_t") ||
+	       !strcmp(character, "ssize_t") || !strcmp(character, "ptrdiff_t") ||
+	       !strcmp(character, "intptr_t") || !strcmp(character, "uintptr_t") ||
+	       !strcmp(character, "intmax_t") || !strcmp(character, "uintmax_t") ||
 	       !strcmp(character, "int8_t") || !strcmp(character, "int16_t") ||
 	       !strcmp(character, "int32_t") || !strcmp(character, "int64_t") ||
-	       !strcmp(character, "const") || !strcmp(character, "unsigned") ||
-	       !strcmp(character, "long") || !strcmp(character, "signed") ||
-	       !strcmp(character, "struct") || !strcmp(character, "ST");
+	       !strcmp(character, "uint8_t") || !strcmp(character, "uint16_t") ||
+	       !strcmp(character, "uint32_t") || !strcmp(character, "uint64_t") ||
+	       !strcmp(character, "int_least8_t") || !strcmp(character, "int_least16_t") ||
+	       !strcmp(character, "int_least32_t") || !strcmp(character, "int_least64_t") ||
+	       !strcmp(character, "uint_least8_t") || !strcmp(character, "uint_least16_t") ||
+	       !strcmp(character, "uint_least32_t") || !strcmp(character, "uint_least64_t") ||
+	       !strcmp(character, "int_fast8_t") || !strcmp(character, "int_fast16_t") ||
+	       !strcmp(character, "int_fast32_t") || !strcmp(character, "int_fast64_t") ||
+	       !strcmp(character, "uint_fast8_t") || !strcmp(character, "uint_fast16_t") ||
+	       !strcmp(character, "uint_fast32_t") || !strcmp(character, "uint_fast64_t");
 }
 
 static bool parse_gnu_attributes(Parser *parser)
@@ -198,8 +210,10 @@ static CType *parse_type(Parser *parser)
 	const char *character;
 	CType *alias;
 	bool is_unsigned = false;
-	paccept(parser, "const");
-	if(paccept(parser, "struct") || paccept(parser, "ST")) {
+	bool is_signed = false;
+	while(peq(parser, "const") || peq(parser, "volatile") || peq(parser, "restrict"))
+		parser->p++;
+	if(paccept(parser, "struct")) {
 		char *tag = NULL;
 		CType *type;
 		if(ptok(parser)->kind == TK_ID && !peq(parser, "{"))
@@ -227,83 +241,117 @@ static CType *parse_type(Parser *parser)
 		finish_struct_layout(type, parse_gnu_attributes(parser));
 		return type;
 	}
-	if(paccept(parser, "unsigned") || paccept(parser, "U"))
+	if(paccept(parser, "unsigned"))
 		is_unsigned = true;
-	else
-		paccept(parser, "signed");
-	if(is_unsigned) {
-		if(paccept(parser, "char") || paccept(parser, "C"))
-			return &T_U8;
-		if(paccept(parser, "short") || paccept(parser, "S")) {
-			paccept(parser, "int");
-			paccept(parser, "INT");
-			return &T_U16;
-		}
-		if(paccept(parser, "long") || paccept(parser, "L")) {
-			paccept(parser, "long");
-			paccept(parser, "L");
-			return &T_U64;
+	else if(paccept(parser, "signed"))
+		is_signed = true;
+	if(paccept(parser, "long")) {
+		bool second_long = paccept(parser, "long");
+		if(!second_long && paccept(parser, "double")) {
+			if(is_unsigned || is_signed)
+				perr(parser, "invalid signedness for long double");
+			return &T_LDOUBLE;
 		}
 		paccept(parser, "int");
-		paccept(parser, "INT");
+		if(is_unsigned)
+			return second_long ? &T_U64 : &T_ULONG;
+		return second_long ? &T_LLONG : &T_LONG;
+	}
+	if(paccept(parser, "short")) {
+		if(paccept(parser, "int"))
+			return is_unsigned ? &T_U16 : &T_SHORT;
+		return is_unsigned ? &T_U16 : &T_SHORT;
+	}
+	if(paccept(parser, "char"))
+		return is_unsigned ? &T_U8 : &T_CHAR;
+	if(paccept(parser, "int"))
+		return is_unsigned ? &T_U32 : &T_INT;
+	if(is_unsigned)
 		return &T_U32;
+	if(is_signed)
+		return &T_INT;
+	if(paccept(parser, "float")) {
+		if(is_unsigned || is_signed)
+			perr(parser, "invalid signedness for float");
+		return &T_FLOAT;
 	}
-	if(paccept(parser, "long") || paccept(parser, "L")) {
-		paccept(parser, "long");
-		paccept(parser, "L");
-		return &T_U64;
+	if(paccept(parser, "double")) {
+		if(is_unsigned || is_signed)
+			perr(parser, "invalid signedness for double");
+		return &T_DOUBLE;
 	}
-	if(paccept(parser, "short") || paccept(parser, "S")) {
-		paccept(parser, "int");
-		paccept(parser, "INT");
-		return &T_SHORT;
-	}
+	if(is_unsigned || is_signed)
+		perr(parser, "expected integer type");
 	character = ptok(parser)->v;
 	alias = find_alias(parser->prog, character);
 	if(alias) {
 		parser->p++;
 		return alias;
 	}
-	if(!strcmp(character, "VD") || !strcmp(character, "void")) {
+	if(!strcmp(character, "void")) {
 		parser->p++;
 		return &T_VOID;
 	}
-	if(!strcmp(character, "C") || !strcmp(character, "CC") || !strcmp(character, "char") ||
-	   !strcmp(character, "int8_t"))
-	{
+	if(!strcmp(character, "_Bool") || !strcmp(character, "bool")) {
+		parser->p++;
+		return &T_BOOL;
+	}
+	if(!strcmp(character, "int8_t") || !strcmp(character, "int_least8_t") ||
+	   !strcmp(character, "int_fast8_t")) {
 		parser->p++;
 		return &T_CHAR;
 	}
-	if(!strcmp(character, "INT") || !strcmp(character, "int") || !strcmp(character, "int32_t")) {
-		parser->p++;
-		return &T_INT;
-	}
-	if(!strcmp(character, "DB") || !strcmp(character, "double")) {
-		parser->p++;
-		return &T_DOUBLE;
-	}
-	if(!strcmp(character, "uint8_t")) {
+	if(!strcmp(character, "uint8_t") || !strcmp(character, "uint_least8_t") ||
+	   !strcmp(character, "uint_fast8_t")) {
 		parser->p++;
 		return &T_U8;
 	}
-	if(!strcmp(character, "uint16_t")) {
+	if(!strcmp(character, "int16_t") || !strcmp(character, "int_least16_t") ||
+	   !strcmp(character, "int_fast16_t")) {
+		parser->p++;
+		return &T_SHORT;
+	}
+	if(!strcmp(character, "uint16_t") || !strcmp(character, "uint_least16_t") ||
+	   !strcmp(character, "uint_fast16_t")) {
 		parser->p++;
 		return &T_U16;
 	}
-	if(!strcmp(character, "uint32_t")) {
+	if(!strcmp(character, "int32_t") || !strcmp(character, "int_least32_t") ||
+	   !strcmp(character, "int_fast32_t")) {
+		parser->p++;
+		return &T_INT;
+	}
+	if(!strcmp(character, "uint32_t") || !strcmp(character, "uint_least32_t") ||
+	   !strcmp(character, "uint_fast32_t")) {
 		parser->p++;
 		return &T_U32;
 	}
-	if(!strcmp(character, "ULL") || !strcmp(character, "uint64_t") ||
-	   !strcmp(character, "int64_t") || !strcmp(character, "Window") ||
-	   !strcmp(character, "Font") || !strcmp(character, "size_t"))
-	{
+	if(!strcmp(character, "int64_t") || !strcmp(character, "int_least64_t") ||
+	   !strcmp(character, "int_fast64_t")) {
+		parser->p++;
+		return &T_I64;
+	}
+	if(!strcmp(character, "uint64_t") || !strcmp(character, "uint_least64_t") ||
+	   !strcmp(character, "uint_fast64_t")) {
 		parser->p++;
 		return &T_U64;
 	}
-	if(!strcmp(character, "int16_t")) {
+	if(!strcmp(character, "size_t") || !strcmp(character, "uintptr_t")) {
 		parser->p++;
-		return &T_SHORT;
+		return type_get_target() == TARGET_I386 ? &T_U32 : &T_U64;
+	}
+	if(!strcmp(character, "ssize_t") || !strcmp(character, "ptrdiff_t") ||
+	   !strcmp(character, "intptr_t")) {
+		parser->p++;
+		return type_get_target() == TARGET_I386 ? &T_INT : &T_I64;
+	}
+	if(!strcmp(character, "intmax_t")) {
+		parser->p++;
+		return &T_I64;
+	}
+	if(!strcmp(character, "uintmax_t")) {
+		parser->p++;
+		return &T_U64;
 	}
 	if(!strcmp(character, "FILE")) {
 		parser->p++;
@@ -313,9 +361,17 @@ static CType *parse_type(Parser *parser)
 		parser->p++;
 		return &T_DISPLAY;
 	}
+	if(!strcmp(character, "Window")) {
+		parser->p++;
+		return type_get_target() == TARGET_I386 ? &T_U32 : &T_U64;
+	}
 	if(!strcmp(character, "GC")) {
 		parser->p++;
 		return ptr_to(&T_VOID);
+	}
+	if(!strcmp(character, "Font")) {
+		parser->p++;
+		return type_get_target() == TARGET_I386 ? &T_U32 : &T_U64;
 	}
 	if(!strcmp(character, "XEvent")) {
 		parser->p++;
@@ -341,7 +397,7 @@ static Declarator parse_declarator(Parser *parser, CType *base, bool unnamed)
 		d.function = true;
 		if(paccept(parser, ")"))
 			return d;
-		if((peq(parser, "VD") || peq(parser, "void")) &&
+		if(peq(parser, "void") &&
 		   !strcmp(parser->ts->a[parser->p + 1].v, ")"))
 		{
 			parser->p += 2;
@@ -1014,7 +1070,7 @@ void parse_program(Tokens *token_stream, Program *prog)
 		Declarator q;
 		Decl *declaration;
 		for(;;) {
-			if(paccept(&p, "typedef") || paccept(&p, "TD")) {
+			if(paccept(&p, "typedef")) {
 				if(is_typedef)
 					perr(&p, "duplicate typedef specifier");
 				is_typedef = true;
@@ -1026,13 +1082,13 @@ void parse_program(Tokens *token_stream, Program *prog)
 				is_extern = true;
 				continue;
 			}
-			if(paccept(&p, "static") || paccept(&p, "SC")) {
+			if(paccept(&p, "static")) {
 				if(is_static)
 					perr(&p, "duplicate static specifier");
 				is_static = true;
 				continue;
 			}
-			if(paccept(&p, "inline") || paccept(&p, "IL")) {
+			if(paccept(&p, "inline")) {
 				if(is_inline)
 					perr(&p, "duplicate inline specifier");
 				is_inline = true;

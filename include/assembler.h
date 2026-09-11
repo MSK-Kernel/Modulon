@@ -64,6 +64,6 @@ typedef struct
 
 void put_u8(Buf *buffer, uint8_t value);
 void internal_assemble(const char *assembly, AsmImage *array);
-void write_independent_elf(const char *path, AsmImage *array, bool needs_x11, char **libraries, size_t library_count);
+void write_independent_elf(const char *path, AsmImage *array, char **libraries, size_t library_count);
 
 #endif

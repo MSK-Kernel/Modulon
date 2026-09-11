@@ -235,7 +235,7 @@ static void load_rax(Gen *generator, CType *type)
 		emit(generator, "    movzx eax, word ptr [rax]");
 	else if(type->kind == TY_INT)
 		emit(generator, "    movsxd rax, dword ptr [rax]");
-	else if(type->kind == TY_U32)
+	else if(type->kind == TY_U32 || type->kind == TY_FLOAT)
 		emit(generator, "    mov eax, dword ptr [rax]");
 	else
 		emit(generator, "    mov rax, qword ptr [rax]");
@@ -247,7 +247,7 @@ static void store_rcx(Gen *generator, CType *type)
 		emit(generator, "    mov byte ptr [rcx], al");
 	else if(type->kind == TY_SHORT || type->kind == TY_U16)
 		emit(generator, "    mov word ptr [rcx], ax");
-	else if(type->kind == TY_INT || type->kind == TY_U32)
+	else if(type->kind == TY_INT || type->kind == TY_U32 || type->kind == TY_FLOAT)
 		emit(generator, "    mov dword ptr [rcx], eax");
 	else
 		emit(generator, "    mov qword ptr [rcx], rax");
@@ -280,7 +280,7 @@ static void load_extern_global(Gen *generator, const char *name, CType *type)
 		emit(generator, "    movzx eax, word ptr [rip+%s]", name);
 	else if(type->kind == TY_INT)
 		emit(generator, "    movsxd rax, dword ptr [rip+%s]", name);
-	else if(type->kind == TY_U32)
+	else if(type->kind == TY_U32 || type->kind == TY_FLOAT)
 		emit(generator, "    mov eax, dword ptr [rip+%s]", name);
 	else
 		emit(generator, "    mov rax, qword ptr [rip+%s]", name);

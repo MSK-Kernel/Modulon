@@ -26,7 +26,6 @@ int main(int argc, char **argv)
 	bool compile_only = false;
 	bool target_i386 = false;
 	bool freestanding = false;
-	bool needs_x11 = false;
 	for(index = 1; index < (size_t)argc; index++) {
 		if(!strcmp(argv[index], "--help") || !strcmp(argv[index], "-h")) {
 			usage();
@@ -89,15 +88,11 @@ int main(int argc, char **argv)
 	}
 	if(compile_only)
 		target_i386 = true;
+	type_set_target(target_i386 ? TARGET_I386 : TARGET_POSIX);
 	for(index = 0; index < nsrc; index++) {
 		char *raw = read_file(src[index]);
 		char *text = preprocess_source(raw);
 		Tokens tokens = lex_source(text, src[index]);
-		if(strstr(raw, "X11/Xlib.h") ||
-		   strstr(raw, "XOpenDisplay") ||
-		   strstr(raw, "XCreateSimpleWindow") ||
-		   strstr(raw, "XDrawString"))
-			needs_x11 = true;
 		parse_program(&tokens, &prog);
 	}
 	(void)freestanding;
@@ -118,7 +113,7 @@ int main(int argc, char **argv)
 		{
 			AsmImage image;
 			internal_assemble(assembly, &image);
-			write_independent_elf(out, &image, needs_x11, libs, nlibs);
+			write_independent_elf(out, &image, libs, nlibs);
 		}
 	}
 	return 0;

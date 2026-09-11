@@ -100,6 +100,7 @@ static long i386_type_size(CType *type)
 	switch(type->kind) {
 	case TY_VOID:
 		return 0;
+	case TY_BOOL:
 	case TY_CHAR:
 	case TY_U8:
 		return 1;
@@ -108,12 +109,20 @@ static long i386_type_size(CType *type)
 		return 2;
 	case TY_INT:
 	case TY_U32:
+	case TY_FLOAT:
+		return 4;
+	case TY_LONG:
+	case TY_ULONG:
 	case TY_PTR:
 	case TY_OPAQUE:
 		return 4;
+	case TY_LLONG:
 	case TY_U64:
+	case TY_I64:
 	case TY_DOUBLE:
 		return 8;
+	case TY_LDOUBLE:
+		return 12;
 	case TY_STRUCT:
 	{
 		long offset = 0;
