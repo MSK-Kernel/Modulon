@@ -7,6 +7,13 @@ without the complexity of a traditional compiler toolchain.
 Latest releases: https://github.com/roccohimel/Modulon/releases
 
 # Building Modulon from Source
+**Required build dependencies**
+
+- GCC
+- ANSI C libraries
+
+**Building Modulon**
+
 To build Modulon from source, clone the repository. You must have git for this
 to work:
 ```
@@ -22,3 +29,6 @@ Once Modulon has finished compiling, the compiler should be located:
 ```
 bin/modulon
 ```
+
+# Credits
+The Modulon Language is maintained and lead by me, Rocco Himel.
