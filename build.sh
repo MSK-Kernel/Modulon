@@ -1,6 +1,3 @@
-#!/bin/bash
+#!/bin/sh
 
-#compile the compiler
-
-cc -O2 -std=c11 -Wall -Wextra -Wpedantic -static src/compiler.c -o Modulon
-
+cc -std=c11 -Wall -Wextra -Wno-unused-parameter -Iinclude -o bin/modulon src/*.c
