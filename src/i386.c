@@ -425,6 +425,10 @@ static CType *i386_expr_type(I386Gen *gen, Expr *expression)
 	}
 	case EX_SIZEOF:
 		return &T_U32;
+	case EX_TYPEOF:
+		return expression->sizeof_type ? expression->sizeof_type : i386_expr_type(gen, expression->left);
+	case EX_TYPE:
+		return expression->type;
 	case EX_BINARY:
 		if(!strcmp(expression->op, "==") ||
 		   !strcmp(expression->op, "!=") ||
@@ -438,6 +442,8 @@ static CType *i386_expr_type(I386Gen *gen, Expr *expression)
 		return i386_expr_type(gen, expression->left);
 	case EX_CALL:
 		if(expression->left->kind == EX_ID) {
+			if(!strcmp(expression->left->str, "input"))
+				return ptr_to(&T_CHAR);
 			declaration = i386_find_function(gen->program,
 							 expression->left->str);
 			if(declaration)
@@ -1026,10 +1032,28 @@ static void i386_gen_binary64(I386Gen *gen, Expr *expression)
 	fatal("unsupported 64-bit i386 operator %s", operator);
 }
 
+static CType *i386_type_operand(I386Gen *gen, Expr *expression)
+{
+	if(!expression)
+		return NULL;
+	if(expression->kind == EX_TYPE)
+		return expression->type;
+	if(expression->kind == EX_TYPEOF)
+		return expression->sizeof_type ? expression->sizeof_type : i386_expr_type(gen, expression->left);
+	return NULL;
+}
+
 static void i386_gen_binary(I386Gen *gen, Expr *expression)
 {
 	const char *operator= expression->op;
 	CType *type;
+	CType *left_type = i386_type_operand(gen, expression->left);
+	CType *right_type = i386_type_operand(gen, expression->right);
+	if((!strcmp(operator, "==") || !strcmp(operator, "!=")) && left_type && right_type) {
+		bool equal = type_equal(left_type, right_type);
+		i386_emit_mov_eax_imm(gen, !strcmp(operator, "==") ? equal : !equal);
+		return;
+	}
 	if(i386_expression_is_u64(gen, expression->left) &&
 	   strcmp(operator, "==") && strcmp(operator, "!=") &&
 	   strcmp(operator, "<") && strcmp(operator, "<=") &&
@@ -1215,6 +1239,105 @@ static void i386_gen_binary(I386Gen *gen, Expr *expression)
 	}
 }
 
+static void i386_gen_input(I386Gen *gen, Expr *expression)
+{
+	if(expression->nargs != 1)
+		fatal("input expects one argument");
+	i386_gen_expression(gen, expression->args[0]);
+	i386_put8(&gen->text, 0x50);
+	i386_put8(&gen->text, 0xe8);
+	{
+		uint32_t offset = (uint32_t)gen->text.n;
+		i386_put32(&gen->text, 0xfffffffcU);
+		i386_add_relocation(gen, I386_SEC_TEXT, offset, R_386_PC32, "printf", 0);
+	}
+	i386_put8(&gen->text, 0x83);
+	i386_put8(&gen->text, 0xc4);
+	i386_put8(&gen->text, 4);
+	i386_emit_mov_eax_symbol(gen, "__modulon_input_buffer");
+	i386_put8(&gen->text, 0x50);
+	i386_emit_mov_eax_imm(gen, 1024);
+	i386_put8(&gen->text, 0x50);
+	i386_add_object_symbol(gen, "stdin", ptr_to(&T_VOID), false);
+	i386_emit_load_symbol(gen, "stdin", ptr_to(&T_VOID));
+	i386_put8(&gen->text, 0x50);
+	i386_put8(&gen->text, 0xe8);
+	{
+		uint32_t offset = (uint32_t)gen->text.n;
+		i386_put32(&gen->text, 0xfffffffcU);
+		i386_add_relocation(gen, I386_SEC_TEXT, offset, R_386_PC32, "fgets", 0);
+	}
+	i386_put8(&gen->text, 0x83);
+	i386_put8(&gen->text, 0xc4);
+	i386_put8(&gen->text, 12);
+	i386_emit_mov_eax_symbol(gen, "__modulon_input_buffer");
+}
+
+static const char *i386_variable_format(CType *type)
+{
+	if(type && type->kind == TY_PTR && type->base && type->base->kind == TY_CHAR)
+		return "%s";
+	if(!type)
+		fatal("cannot determine variable type for %%v");
+	switch(type->kind) {
+	case TY_BOOL:
+	case TY_CHAR:
+	case TY_SHORT:
+	case TY_INT:
+	case TY_U8:
+	case TY_U16:
+	case TY_U32:
+		return "%d";
+	case TY_LONG:
+		return "%ld";
+	case TY_LLONG:
+	case TY_I64:
+		return "%lld";
+	case TY_ULONG:
+		return "%lu";
+	case TY_U64:
+		return "%llu";
+	case TY_DOUBLE:
+		return "%f";
+	case TY_PTR:
+		return "%p";
+	default:
+		fatal("unsupported type for %%v");
+	}
+	return "%d";
+}
+
+static void i386_expand_variable_formats(I386Gen *gen, Expr *expression)
+{
+	const char *format;
+	char *expanded;
+	size_t index, output_index = 0, variable_index = 1, length;
+	if(expression->nargs == 0 || expression->args[0]->kind != EX_STR)
+		return;
+	format = expression->args[0]->str;
+	length = strlen(format);
+	expanded = xmalloc(length + expression->nargs * 4 + 1);
+	for(index = 0; index < length; index++) {
+		if(format[index] == '%') {
+			if(index + 1 >= length || format[index + 1] != 'v')
+				fatal("printf strings may only use %%v for variables");
+			if(variable_index >= expression->nargs)
+				fatal("not enough variables for %%v");
+			{
+				const char *replacement = i386_variable_format(i386_expr_type(gen, expression->args[variable_index++]));
+				while(*replacement)
+					expanded[output_index++] = *replacement++;
+			}
+			index++;
+		} else
+			expanded[output_index++] = format[index];
+	}
+	if(variable_index != expression->nargs)
+		fatal("too many variables for %%v");
+	expanded[output_index] = 0;
+	expression->args[0]->str = expanded;
+}
+
 static void i386_gen_call(I386Gen *gen, Expr *expression)
 {
 	size_t index;
@@ -1223,6 +1346,21 @@ static void i386_gen_call(I386Gen *gen, Expr *expression)
 	if(expression->left->kind != EX_ID)
 		fatal("only direct calls are supported by i386 backend");
 	name = expression->left->str;
+	if(!strcmp(name, "printf"))
+		i386_expand_variable_formats(gen, expression);
+	if(!strcmp(name, "input")) {
+		i386_add_object_symbol(gen, "__modulon_input_buffer", ptr_to(&T_CHAR), false);
+		if(!i386_find_object_symbol(gen, "__modulon_input_buffer")->defined) {
+			I386ObjSymbol *symbol = i386_find_object_symbol(gen, "__modulon_input_buffer");
+			symbol->defined = true;
+			symbol->section = I386_SEC_BSS;
+			symbol->value = gen->bss_size;
+			symbol->size = 1024;
+			gen->bss_size += 1024;
+		}
+		i386_gen_input(gen, expression);
+		return;
+	}
 	if(!strcmp(name, "va_start") || !strcmp(name, "va_end"))
 		fatal("variadic builtins are not supported by i386 backend yet");
 	for(index = expression->nargs; index > 0; index--) {
@@ -1321,6 +1459,10 @@ static void i386_gen_expression(I386Gen *gen, Expr *expression)
 		i386_emit_mov_eax_imm(gen,
 				      (uint32_t)i386_type_size(expression->sizeof_type ? expression->sizeof_type : i386_expr_type(gen, expression->left)));
 		return;
+	case EX_TYPEOF:
+	case EX_TYPE:
+		fatal("type expression cannot be used as a runtime value");
+		return;
 	case EX_UNARY:
 		if(!strcmp(expression->op, "++") ||
 		   !strcmp(expression->op, "--") ||
@@ -1401,6 +1543,13 @@ static long i386_collect_locals(I386Gen *gen, Stmt *statement, long used)
 		return used;
 	if(statement->kind == ST_DECL) {
 		declaration = statement->decl;
+		if(declaration->is_var) {
+			if(!declaration->init)
+				fatal("var declaration requires an initializer");
+			declaration->type = i386_expr_type(gen, declaration->init);
+			if(!declaration->type)
+				fatal("cannot infer type of var %s", declaration->name);
+		}
 		if(i386_find_local(gen, declaration->name))
 			fatal("duplicate local %s", declaration->name);
 		size = i386_type_size(declaration->type);

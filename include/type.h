@@ -88,5 +88,6 @@ CType *vla_of(CType *base, const char *bound);
 bool is_vla(CType *type);
 long type_size(CType *type);
 long type_align(CType *type);
+bool type_equal(CType *left, CType *right);
 
 #endif

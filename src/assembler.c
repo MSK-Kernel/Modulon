@@ -685,6 +685,12 @@ static void assemble_instruction(AsmImage *array, char *line)
 		emit_mov_memory_register(buffer, 0, displacement, first_register, 8);
 		return;
 	}
+	if(!strcmp(line, "mov byte ptr [rax], 0")) {
+		put_u8(buffer, 0xc6);
+		put_u8(buffer, 0x00);
+		put_u8(buffer, 0x00);
+		return;
+	}
 	if(sscanf(line, "mov qword ptr [rax], %31s", reg1) == 1) {
 		first_register = register_number(reg1);
 		if(first_register < 0)

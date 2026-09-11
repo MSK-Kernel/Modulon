@@ -39,6 +39,7 @@ typedef struct
 	Decl *current;
 	long frame, vaoff, tempdepth;
 	long label;
+	bool input_used;
 	char retlabel[128];
 	char **breaks;
 	size_t nbreaks, capbreaks;
@@ -122,7 +123,7 @@ static Symbol lookup(Gen *generator, const char *count)
 		return (Symbol){(char *)count, &T_U64, SY_CONST, 1L << 0, NULL};
 	if(!strcmp(count, "KeyPress"))
 		return (Symbol){(char *)count, &T_U64, SY_CONST, 2, NULL};
-	if(!strcmp(count, "stderr"))
+	if(!strcmp(count, "stderr") || !strcmp(count, "stdin"))
 		return (Symbol){(char *)count, ptr_to(&T_VOID), SY_EXTERN_GLOBAL, 0, NULL};
 	function_declaration = find_func(generator, count);
 	if(function_declaration)
@@ -170,6 +171,10 @@ static CType *expr_type(Gen *generator, Expr *expression)
 	}
 	case EX_SIZEOF:
 		return &T_U64;
+	case EX_TYPEOF:
+		return expression->sizeof_type ? expression->sizeof_type : expr_type(generator, expression->left);
+	case EX_TYPE:
+		return expression->type;
 	case EX_BINARY:
 		if(!strcmp(expression->op, "==") || !strcmp(expression->op, "!=") || !strcmp(expression->op, "<") || !strcmp(expression->op, "<=") || !strcmp(expression->op, ">") || !strcmp(expression->op, ">=") || !strcmp(expression->op, "&&") || !strcmp(expression->op, "||"))
 			return &T_INT;
@@ -182,6 +187,8 @@ static CType *expr_type(Gen *generator, Expr *expression)
 		return expr_type(generator, expression->left);
 	case EX_CALL:
 		if(expression->left->kind == EX_ID) {
+			if(!strcmp(expression->left->str, "input"))
+				return ptr_to(&T_CHAR);
 			Decl *function_declaration = find_func(generator, expression->left->str);
 			if(function_declaration)
 				return function_declaration->type;
@@ -340,9 +347,27 @@ static CType *gen_addr(Gen *generator, Expr *expression)
 	return &T_U64;
 }
 
+static CType *type_operand(Gen *generator, Expr *expression)
+{
+	if(!expression)
+		return NULL;
+	if(expression->kind == EX_TYPE)
+		return expression->type;
+	if(expression->kind == EX_TYPEOF)
+		return expression->sizeof_type ? expression->sizeof_type : expr_type(generator, expression->left);
+	return NULL;
+}
+
 static void gen_binary(Gen *generator, Expr *expression)
 {
 	const char *operator = expression->op;
+	CType *left_type = type_operand(generator, expression->left);
+	CType *right_type = type_operand(generator, expression->right);
+	if((!strcmp(operator, "==") || !strcmp(operator, "!=")) && left_type && right_type) {
+		bool equal = type_equal(left_type, right_type);
+		emit(generator, "    mov eax, %d", !strcmp(operator, "==") ? equal : !equal);
+		return;
+	}
 	CType *type;
 	bool floating = is_double_type(expr_type(generator, expression->left)) ||
 			is_double_type(expr_type(generator, expression->right));
@@ -498,6 +523,102 @@ static const char *call_name(const char *argument_count)
 	return argument_count;
 }
 
+static void gen_input(Gen *generator, Expr *expression)
+{
+	char *no_newline_label = new_label(generator, ".Linput_no_newline");
+	if(expression->nargs != 1)
+		fatal("input expects one argument");
+	generator->input_used = true;
+	gen_expr(generator, expression->args[0]);
+	emit(generator, "    mov rdi, rax");
+	emit(generator, "    xor eax, eax");
+	emit(generator, "    call printf@PLT");
+	emit(generator, "    lea rax, [rip+__modulon_input_buffer]");
+	emit(generator, "    mov rdi, rax");
+	emit(generator, "    mov rax, 1024");
+	emit(generator, "    mov rsi, rax");
+	emit(generator, "    mov rax, qword ptr [rip+stdin]");
+	emit(generator, "    mov rdx, rax");
+	emit(generator, "    xor eax, eax");
+	emit(generator, "    call fgets@PLT");
+	emit(generator, "    lea rax, [rip+__modulon_input_buffer]");
+	emit(generator, "    mov rdi, rax");
+	emit(generator, "    mov rax, 10");
+	emit(generator, "    mov rsi, rax");
+	emit(generator, "    xor eax, eax");
+	emit(generator, "    call strchr@PLT");
+	emit(generator, "    test rax, rax");
+	emit(generator, "    jz %s", no_newline_label);
+	emit(generator, "    mov byte ptr [rax], 0");
+	emit(generator, "%s:", no_newline_label);
+	emit(generator, "    lea rax, [rip+__modulon_input_buffer]");
+}
+
+static const char *variable_format(CType *type)
+{
+	if(type && type->kind == TY_PTR && type->base && type->base->kind == TY_CHAR)
+		return "%s";
+	if(!type)
+		fatal("cannot determine variable type for %%v");
+	switch(type->kind) {
+	case TY_BOOL:
+	case TY_CHAR:
+	case TY_SHORT:
+	case TY_INT:
+	case TY_U8:
+	case TY_U16:
+	case TY_U32:
+		return "%d";
+	case TY_LONG:
+		return "%ld";
+	case TY_LLONG:
+	case TY_I64:
+		return "%lld";
+	case TY_ULONG:
+		return "%lu";
+	case TY_U64:
+		return "%llu";
+	case TY_DOUBLE:
+		return "%f";
+	case TY_PTR:
+		return "%p";
+	default:
+		fatal("unsupported type for %%v");
+	}
+	return "%d";
+}
+
+static void expand_variable_formats(Gen *generator, Expr *expression)
+{
+	const char *format;
+	char *expanded;
+	size_t index, output_index = 0, variable_index = 1, length;
+	if(expression->nargs == 0 || expression->args[0]->kind != EX_STR)
+		return;
+	format = expression->args[0]->str;
+	length = strlen(format);
+	expanded = xmalloc(length + expression->nargs * 4 + 1);
+	for(index = 0; index < length; index++) {
+		if(format[index] == '%') {
+			if(index + 1 >= length || format[index + 1] != 'v')
+				fatal("printf strings may only use %%v for variables");
+			if(variable_index >= expression->nargs)
+				fatal("not enough variables for %%v");
+			{
+				const char *replacement = variable_format(expr_type(generator, expression->args[variable_index++]));
+				while(*replacement)
+					expanded[output_index++] = *replacement++;
+			}
+			index++;
+		} else
+			expanded[output_index++] = format[index];
+	}
+	if(variable_index != expression->nargs)
+		fatal("too many variables for %%v");
+	expanded[output_index] = 0;
+	expression->args[0]->str = expanded;
+}
+
 static void gen_call(Gen *generator, Expr *expression)
 {
 	size_t index, argument_count = expression->nargs;
@@ -508,6 +629,10 @@ static void gen_call(Gen *generator, Expr *expression)
 	if(expression->left->kind != EX_ID)
 		fatal("only direct calls supported");
 	name = expression->left->str;
+	if(!strcmp(name, "input")) {
+		gen_input(generator, expression);
+		return;
+	}
 	if(!strcmp(name, "va_start")) {
 		Symbol ap;
 		long named;
@@ -532,6 +657,8 @@ static void gen_call(Gen *generator, Expr *expression)
 	for(index = 0; index < argument_count; index++)
 		if(is_double_type(expr_type(generator, expression->args[index])))
 			has_double = true;
+	if(!strcmp(name, "printf"))
+		expand_variable_formats(generator, expression);
 	name = call_name(name);
 	if(has_double) {
 		size_t integer_count = 0, double_count = 0;
@@ -671,6 +798,10 @@ static void gen_expr(Gen *generator, Expr *expression)
 	case EX_SIZEOF:
 		emit(generator, "    mov rax, %ld", type_size(expression->sizeof_type ? expression->sizeof_type : expr_type(generator, expression->left)));
 		return;
+	case EX_TYPEOF:
+	case EX_TYPE:
+		fatal("type expression cannot be used as a runtime value");
+		return;
 	case EX_UNARY:
 		if(!strcmp(expression->op, "++") || !strcmp(expression->op, "--") ||
 		   !strcmp(expression->op, "post++") || !strcmp(expression->op, "post--"))
@@ -741,6 +872,13 @@ static long collect_locals(Gen *generator, Stmt *statement, long off)
 		return off;
 	if(statement->kind == ST_DECL) {
 		declaration = statement->decl;
+		if(declaration->is_var) {
+			if(!declaration->init)
+				fatal("var declaration requires an initializer");
+			declaration->type = expr_type(generator, declaration->init);
+			if(!declaration->type)
+				fatal("cannot infer type of var %s", declaration->name);
+		}
 		if(find_local(generator, declaration->name))
 			fatal("duplicate local %s", declaration->name);
 		off = align_up(off, type_align(declaration->type));
@@ -983,6 +1121,12 @@ char *generate(Program *pointer)
 			emit(&g, "%s:", sym->name);
 			emit(&g, "    .zero %ld", type_size(sym->type) > 0 ? type_size(sym->type) : 1);
 		}
+	}
+	if(g.input_used) {
+		emit(&g, ".bss");
+		emit(&g, ".align 16");
+		emit(&g, "__modulon_input_buffer:");
+		emit(&g, "    .zero 1024");
 	}
 	if(g.ro.n) {
 		emit(&g, ".section .rodata");

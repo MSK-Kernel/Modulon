@@ -46,6 +46,8 @@ typedef enum
 	EX_MEMBER,
 	EX_PTRMEMBER,
 	EX_SIZEOF,
+	EX_TYPEOF,
+	EX_TYPE,
 	EX_INITLIST
 } ExprKind;
 
@@ -107,6 +109,7 @@ struct Decl
 	Param *params;
 	size_t nparams, capparams;
 	bool variadic;
+	bool is_var;
 	bool prototype;
 	bool is_extern;
 	bool is_static;

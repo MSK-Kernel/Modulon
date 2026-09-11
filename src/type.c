@@ -125,3 +125,16 @@ long type_align(CType *type)
 		return current_target == TARGET_I386 ? 4 : 16;
 	return 8;
 }
+
+bool type_equal(CType *left, CType *right)
+{
+	if(left == right)
+		return true;
+	if(!left || !right || left->kind != right->kind)
+		return false;
+	if(left->kind == TY_PTR || left->kind == TY_ARRAY)
+		return left->count == right->count && type_equal(left->base, right->base);
+	if(left->kind == TY_STRUCT)
+		return left == right;
+	return true;
+}

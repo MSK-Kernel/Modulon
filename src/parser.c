@@ -133,7 +133,7 @@ static bool type_start(Parser *parser)
 	if(find_alias(parser->prog, character))
 		return true;
 	return !strcmp(character, "void") || !strcmp(character, "_Bool") ||
-	       !strcmp(character, "bool") || !strcmp(character, "char") ||
+	       !strcmp(character, "bool") || !strcmp(character, "string") || !strcmp(character, "char") ||
 	       !strcmp(character, "short") || !strcmp(character, "int") ||
 	       !strcmp(character, "long") || !strcmp(character, "float") ||
 	       !strcmp(character, "double") || !strcmp(character, "signed") ||
@@ -261,6 +261,11 @@ static CType *parse_type(Parser *parser)
 		if(paccept(parser, "int"))
 			return is_unsigned ? &T_U16 : &T_SHORT;
 		return is_unsigned ? &T_U16 : &T_SHORT;
+	}
+	if(paccept(parser, "string")) {
+		if(is_unsigned || is_signed)
+			perr(parser, "invalid signedness for string");
+		return ptr_to(&T_CHAR);
 	}
 	if(paccept(parser, "char"))
 		return is_unsigned ? &T_U8 : &T_CHAR;
@@ -602,6 +607,23 @@ static Expr *parse_primary(Parser *parser)
 		expression->type = &T_INT;
 		return expression;
 	}
+	if(paccept(parser, "typeof")) {
+		expression = new_expr(EX_TYPEOF);
+		pexpect(parser, "(");
+		if(type_start(parser))
+			expression->sizeof_type = parse_type(parser);
+		else
+			expression->left = parse_expr(parser, 1);
+		pexpect(parser, ")");
+		return expression;
+	}
+	if(type_start(parser)) {
+		expression = new_expr(EX_TYPE);
+		expression->type = parse_type(parser);
+		while(paccept(parser, "*"))
+			expression->type = ptr_to(expression->type);
+		return expression;
+	}
 	if(token->kind == TK_ID) {
 		parser->p++;
 		expression = new_expr(EX_ID);
@@ -881,6 +903,20 @@ static Stmt *parse_block(Parser *parser)
 	pexpect(parser, "{");
 	while(!paccept(parser, "}")) {
 		Stmt *statement_1;
+		if(paccept(parser, "var")) {
+			Decl *declaration = new_decl();
+			declaration->name = pexpect_id(parser, false);
+			if(!paccept(parser, "="))
+				perr(parser, "var declaration requires an initializer");
+			declaration->init = parse_initializer(parser);
+			declaration->is_var = true;
+			statement_1 = new_stmt(ST_DECL);
+			statement_1->decl = declaration;
+			ARR_GROW(statement->children, statement->nchildren, statement->capchildren, Stmt *);
+			statement->children[statement->nchildren++] = statement_1;
+			pexpect(parser, ";");
+			continue;
+		}
 		if(type_start(parser)) {
 			CType *base_type = parse_type(parser);
 			for(;;) {
@@ -937,7 +973,17 @@ static Stmt *parse_stmt(Parser *parser)
 		statement = new_stmt(ST_FOR);
 		pexpect(parser, "(");
 		if(!paccept(parser, ";")) {
-			if(type_start(parser)) {
+			if(paccept(parser, "var")) {
+				Decl *declaration = new_decl();
+				declaration->name = pexpect_id(parser, false);
+				if(!paccept(parser, "="))
+					perr(parser, "var declaration requires an initializer");
+				declaration->init = parse_initializer(parser);
+				declaration->is_var = true;
+				pexpect(parser, ";");
+				statement->init = new_stmt(ST_DECL);
+				statement->init->decl = declaration;
+			} else if(type_start(parser)) {
 				CType *base_type = parse_type(parser);
 				Declarator q = parse_declarator(parser, base_type, false);
 				Decl *declaration = new_decl();

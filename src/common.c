@@ -169,40 +169,43 @@ char *preprocess_source(const char *text)
 			cursor++;
 			while(cursor < end && isspace((unsigned char)*cursor))
 				cursor++;
-			if(end - cursor >= 6 && !memcmp(cursor, "define", 6) &&
+		}
+		if(end - cursor >= 7 && !memcmp(cursor, "include", 7) &&
+		   (cursor + 7 == end || isspace((unsigned char)cursor[7]) || cursor[7] == '<' || cursor[7] == '"')) {
+			bputn(&body, "\n", 1);
+		} else if(end - cursor >= 6 && !memcmp(cursor, "define", 6) &&
 			   (cursor + 6 == end || isspace((unsigned char)cursor[6])))
-			{
-				const char *name;
-				const char *value;
-				const char *value_end;
-				Macro *old;
-				cursor += 6;
-				while(cursor < end && isspace((unsigned char)*cursor))
+		{
+			const char *name;
+			const char *value;
+			const char *value_end;
+			Macro *old;
+			cursor += 6;
+			while(cursor < end && isspace((unsigned char)*cursor))
+				cursor++;
+			name = cursor;
+			if(cursor < end && (isalpha((unsigned char)*cursor) || *cursor == '_')) {
+				cursor++;
+				while(cursor < end && (isalnum((unsigned char)*cursor) || *cursor == '_'))
 					cursor++;
-				name = cursor;
-				if(cursor < end && (isalpha((unsigned char)*cursor) || *cursor == '_')) {
-					cursor++;
-					while(cursor < end && (isalnum((unsigned char)*cursor) || *cursor == '_'))
-						cursor++;
-					if(cursor < end && *cursor != '(') {
-						value = cursor;
-						while(value < end && isspace((unsigned char)*value))
-							value++;
-						value_end = end;
-						while(value_end > value &&
-						      isspace((unsigned char)value_end[-1]))
-							value_end--;
-						old = find_macro(macros, nmacros, name, (size_t)(cursor - name));
-						if(!old) {
-							ARR_GROW(macros, nmacros, capmacros, Macro);
-							old = &macros[nmacros++];
-							old->name = xstrndup2(name, (size_t)(cursor - name));
-						} else {
-							free(old->value);
-						}
-						old->value = xstrndup2(value,
-								       (size_t)(value_end - value));
+				if(cursor < end && *cursor != '(') {
+					value = cursor;
+					while(value < end && isspace((unsigned char)*value))
+						value++;
+					value_end = end;
+					while(value_end > value &&
+					      isspace((unsigned char)value_end[-1]))
+						value_end--;
+					old = find_macro(macros, nmacros, name, (size_t)(cursor - name));
+					if(!old) {
+						ARR_GROW(macros, nmacros, capmacros, Macro);
+						old = &macros[nmacros++];
+						old->name = xstrndup2(name, (size_t)(cursor - name));
+					} else {
+						free(old->value);
 					}
+					old->value = xstrndup2(value,
+								       (size_t)(value_end - value));
 				}
 			}
 			bputn(&body, "\n", 1);
