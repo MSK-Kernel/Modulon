@@ -1,0 +1,26 @@
+#include <stdio.h> 
+
+define PASSING_SCORE 70 //macro
+
+int main()
+{
+	/* the "var" type means to automatically select a
+	   type based on the definition. You can also explicitly
+	   set these types just like in C. Modulon also has
+	   automatic memory managment.
+	*/	
+	var name = input("Enter your name: "); //input
+	var score = 92; //integar
+	var grade = "A"; //string
+	printf("\nStudent: %v\n", name); //you can use "%v" to automatically select a type.
+	printf("Score: %v\n", score);
+	printf("Grade: %v\n", grade);
+
+	if(score >= PASSING_SCORE) {
+		printf("%v passed the test.\n", name);
+	}
+	if(typeof(name) == string && typeof(score) == int) {
+		printf("All variable types are correct.\n");
+	}
+	return 0;
+}
