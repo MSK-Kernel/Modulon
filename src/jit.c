@@ -1,24 +1,11 @@
+//Modulon JIT
+
 #define _GNU_SOURCE
 #include "jit.h"
-
 #include "codegen.h"
 #include "assembler.h"
-
 #include <sys/mman.h>
 #include <dlfcn.h>
-
-/*
-In-memory linker.
-The assembler already hands us everything we need in an AsmImage: machine
-code, rodata, bss size, a label table, and a fixup list describing every
-32-bit patch site (relative branches/calls and RIP-relative accesses).
-Where write_independent_elf() would emit an ELF with a PLT and GOT and let
-the dynamic linker resolve imports, we do the same job ourselves.
-Every import gets a GOT slot and a 6-byte thunk (jmp *got_slot) so that
-rel32 calls and RIP-relative loads stay in range. The mapping is built
-writable, patched, then locked to read+execute, so no page is ever both
-writable and executable at the same time.
-*/
 
 struct JitModule
 {
@@ -66,10 +53,8 @@ static void *default_resolver(const char *name, void *context)
 
 static uint64_t label_address(JitModule *module, ALabel *label)
 {
-	if(label->section == ASEC_TEXT)
-		return module->text_va + label->offset;
-	if(label->section == ASEC_RODATA)
-		return module->rodata_va + label->offset;
+	if(label->section == ASEC_TEXT) return module->text_va + label->offset;
+	if(label->section == ASEC_RODATA) return module->rodata_va + label->offset;
 	return module->data_va + label->offset;
 }
 
@@ -77,8 +62,7 @@ static ALabel *module_label(JitModule *module, const char *name)
 {
 	size_t index;
 	for(index = 0; index < module->nlabels; index++)
-		if(!strcmp(module->labels[index].name, name))
-			return &module->labels[index];
+		if(!strcmp(module->labels[index].name, name)) return &module->labels[index];
 	return NULL;
 }
 
@@ -86,8 +70,7 @@ static JitImport *link_import(JitLink *link, AsmImage *image, Import *import)
 {
 	size_t index;
 	for(index = 0; index < link->nimports; index++)
-		if(!strcmp(link->imports[index].name, import->name))
-			return &link->imports[index];
+		if(!strcmp(link->imports[index].name, import->name)) return &link->imports[index];
 	ARR_GROW(link->imports, link->nimports, link->capimports, JitImport);
 	link->imports[link->nimports].name = import->name;
 	link->imports[link->nimports].object = import->object;
@@ -219,7 +202,6 @@ JitModule *jit_compile(Program *program, JitResolver resolver, void *resolver_co
 	//Lock code, rodata, and the GOT to read+execute; the bss pages stay writable.
 	if(mprotect(module->code, exec_size, PROT_READ | PROT_EXEC))
 		fatal("JIT: mprotect failed");
-
 	free(image.text.s);
 	free(image.rodata.s);
 	free(image.fixups);
@@ -231,8 +213,7 @@ JitModule *jit_compile(Program *program, JitResolver resolver, void *resolver_co
 void *jit_symbol(JitModule *module, const char *name)
 {
 	ALabel *label = module_label(module, name);
-	if(!label)
-		return NULL;
+	if(!label) return NULL;
 	return (void *)(uintptr_t)label_address(module, label);
 }
 
@@ -246,8 +227,7 @@ int jit_run(JitModule *module, const char *entry, int argc, char **argv)
 
 void jit_free(JitModule *module)
 {
-	if(!module)
-		return;
+	if(!module) return;
 	if(module->code && module->code != MAP_FAILED)
 		munmap(module->code, module->code_size);
 	free(module->labels);
