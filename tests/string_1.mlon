@@ -1,14 +1,14 @@
 // String literals, concatenation, and evaluation
 
 int test_concat() {
-    string greeting = "Hello";
-    string space = " ";
-    string name = "World";
-    string result = greeting + space + name;
-    return 0;
+        string greeting = "Hello";
+        string space = " ";
+        string name = "World";
+        string result = greeting + space + name;
+        return 0;
 }
 
 int main() {
-    string s = "Modulon string test 1\n";
-    return test_concat();
+        string s = "Modulon string test 1\n";
+        return test_concat();
 }
