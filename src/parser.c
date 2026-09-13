@@ -24,7 +24,7 @@ static void perr(Parser *parser, const char *fmt, ...)
 {
 	va_list argument_list;
 	Token *token = ptok(parser);
-	fprintf(stderr, "aneoc: %s:%d:%d: ", parser->ts->file, token->line, token->col);
+	fprintf(stderr, "\033[1mModulon compiler: \033[0m\033[1;31mparsing error:\033[0m: %s:%d:%d: ", parser->ts->file, token->line, token->col);
 	va_start(argument_list, fmt);
 	vfprintf(stderr, fmt, argument_list);
 	va_end(argument_list);

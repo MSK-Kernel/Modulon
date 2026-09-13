@@ -5,7 +5,7 @@
 void fatal(const char *fmt, ...)
 {
 	va_list argument_list;
-	fprintf(stderr, "\033[37;41mERROR:\033[0m Compilation failed: ");
+	fprintf(stderr, "\033[1mModulon compiler: \033[0m\033[1;31mfatal error:\033[0m Compilation failed: ");
 	va_start(argument_list, fmt);
 	vfprintf(stderr, fmt, argument_list);
 	va_end(argument_list);
