@@ -1,0 +1,10 @@
+// Built-in string support.
+string greeting = "hello from Modulon";
+
+int main()
+{
+    string message = greeting;
+    printf("%v\n", message);
+    printf("%v\n", message[0]);
+    return 0;
+}

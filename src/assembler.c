@@ -855,6 +855,9 @@ static void add_startup(AsmImage *array)
 	put_u8(buffer, 0xe4);
 	put_u8(buffer, 0xf0);
 	put_u8(buffer, 0xe8);
+	add_fixup(array, FIX_REL32_SYMBOL, buffer->n, "_modulon_init", 0);
+	put_u32(buffer, 0);
+	put_u8(buffer, 0xe8);
 	add_fixup(array, FIX_REL32_SYMBOL, buffer->n, "main", 0);
 	put_u32(buffer, 0);
 	put_u8(buffer, 0x89);

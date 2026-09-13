@@ -219,9 +219,12 @@ void *jit_symbol(JitModule *module, const char *name)
 
 int jit_run(JitModule *module, const char *entry, int argc, char **argv)
 {
+	void (*init)(void) = jit_symbol(module, "_modulon_init");
 	int (*function)(int, char **) = jit_symbol(module, entry ? entry : "main");
 	if(!function)
 		fatal("JIT: no function named %s", entry ? entry : "main");
+	if(init)
+		init();
 	return function(argc, argv);
 }
 
