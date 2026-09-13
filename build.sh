@@ -42,3 +42,4 @@ cc *.o -o bin/mlonc
 log "Removing object files..."
 rm *.o
 log "Modulon build end"
+echo "Modulon compiler ready at bin/mlonc"

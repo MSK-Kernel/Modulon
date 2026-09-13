@@ -1103,6 +1103,23 @@ char *generate(Program *pointer)
 	}
 	emit(&g, ".intel_syntax noprefix");
 	emit(&g, ".text");
+	emit(&g, ".globl _modulon_init");
+	emit(&g, "_modulon_init:");
+	for(index = 0; index < pointer->n; index++) {
+		declaration = pointer->a[index];
+		if(declaration->body || declaration->prototype || !declaration->init)
+			continue;
+		if(declaration->type->kind == TY_PTR && declaration->type->base &&
+			declaration->type->base->kind == TY_CHAR &&
+			declaration->init->kind == EX_STR) {
+			char *label = intern_string(&g, declaration->init->str);
+			emit(&g, "    lea rax, [rip+%s]", declaration->name);
+			emit(&g, "    mov rcx, rax");
+			emit(&g, "    lea rax, [rip+%s]", label);
+			emit(&g, "    mov qword ptr [rcx], rax");
+		}
+	}
+	emit(&g, "    ret");
 	for(index = 0; index < pointer->n; index++)
 		if(pointer->a[index]->body)
 			gen_function(&g, pointer->a[index]);

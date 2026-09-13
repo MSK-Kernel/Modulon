@@ -47,5 +47,22 @@ The JIT is also usable as a library (include/jit.h): `jit_compile()`,
 `jit_symbol()`, `jit_run()`, and `jit_free()`, with an optional custom
 symbol resolver for embedding Modulon in another program.
 
+# Strings
+Modulon has a built-in `string` type for null-terminated character strings. It can be used for local and global variables, assignments, function parameters, indexing, and `%v` printing:
+
+```mlon
+string greeting = "hello";
+
+int main()
+{
+    string message = greeting;
+    printf("%v\n", message);
+    printf("%v\n", message[0]);
+    return 0;
+}
+```
+
+String literals are stored in read-only memory, so their characters must not be modified through a `string` value.
+
 # Credits
 The Modulon Language is maintained and lead by me, Rocco Himel.
