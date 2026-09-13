@@ -20,16 +20,66 @@ static bool paccept(Parser *parser, const char *string)
 	return false;
 }
 
+static size_t recovery_position;
+static int recovery_brace_depth;
+
+static void sync_parser(Parser *parser)
+{
+	size_t position = recovery_position;
+	int paren_depth = 0;
+	int bracket_depth = 0;
+	int brace_depth = recovery_brace_depth;
+	while(position < parser->ts->n) {
+		Token *token = &parser->ts->a[position];
+		if(!strcmp(token->v, "("))
+			paren_depth++;
+		else if(!strcmp(token->v, ")")) {
+			if(paren_depth > 0)
+				paren_depth--;
+		} else if(!strcmp(token->v, "["))
+			bracket_depth++;
+		else if(!strcmp(token->v, "]")) {
+			if(bracket_depth > 0)
+				bracket_depth--;
+		} else if(!strcmp(token->v, "{"))
+			brace_depth++;
+		else if(!strcmp(token->v, "}")) {
+			if(brace_depth > 0) {
+				brace_depth--;
+				if(brace_depth == 0) {
+					position++;
+					break;
+				}
+			} else if(paren_depth == 0 && bracket_depth == 0) {
+				position++;
+				break;
+			}
+		} else if(!strcmp(token->v, ";") &&
+			  paren_depth == 0 && bracket_depth == 0) {
+			position++;
+			break;
+		}
+		position++;
+	}
+	if(position >= parser->ts->n)
+		position = parser->ts->n - 1;
+	parser->p = position;
+	parser->recovery_brace_depth = 0;
+}
+
 static void perr(Parser *parser, const char *fmt, ...)
 {
 	va_list argument_list;
+	char message[1024];
 	Token *token = ptok(parser);
-	fprintf(stderr, "\033[1mModulon compiler: \033[0m\033[1;31mparsing error:\033[0m: %s:%d:%d: ", parser->ts->file, token->line, token->col);
 	va_start(argument_list, fmt);
-	vfprintf(stderr, fmt, argument_list);
+	vsnprintf(message, sizeof(message), fmt, argument_list);
 	va_end(argument_list);
-	fprintf(stderr, "; got '%s'\n", token->v);
-	exit(1);
+	diagnostic_report(DIAG_ERROR, parser->ts->file, parser->ts->source,
+		token->line, token->col, "%s; got '%s'", message, token->v);
+	recovery_position = parser->p;
+	recovery_brace_depth = parser->recovery_brace_depth;
+	longjmp(parser->error_jmp, 1);
 }
 
 static void pexpect(Parser *parser, const char *string)
@@ -977,6 +1027,7 @@ static Stmt *parse_block(Parser *parser)
 {
 	Stmt *statement = new_stmt(ST_BLOCK);
 	pexpect(parser, "{");
+	parser->recovery_brace_depth++;
 	while(!paccept(parser, "}")) {
 		Stmt *statement_1;
 		if(paccept(parser, "var")) {
@@ -1019,6 +1070,7 @@ static Stmt *parse_block(Parser *parser)
 		ARR_GROW(statement->children, statement->nchildren, statement->capchildren, Stmt *);
 		statement->children[statement->nchildren++] = statement_1;
 	}
+	parser->recovery_brace_depth--;
 	return statement;
 }
 
@@ -1195,8 +1247,16 @@ static Stmt *parse_stmt(Parser *parser)
 
 void parse_program(Tokens *token_stream, Program *prog)
 {
-	Parser p = {token_stream, 0, prog};
+	Parser p = {0};
+	p.ts = token_stream;
+	p.p = 0;
+	p.prog = prog;
+	p.recovery_brace_depth = 0;
 	while(ptok(&p)->kind != TK_EOF) {
+		if(setjmp(p.error_jmp)) {
+			sync_parser(&p);
+			continue;
+		}
 		bool is_typedef = false;
 		bool is_extern = false;
 		bool is_static = false;

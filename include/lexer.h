@@ -27,6 +27,7 @@ typedef struct
 	size_t n;
 	size_t cap;
 	const char *file;
+	const char *source;
 } Tokens;
 
 Tokens lex_source(const char *text, const char *file);

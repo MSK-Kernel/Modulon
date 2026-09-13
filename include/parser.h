@@ -3,12 +3,15 @@
 
 #include "lexer.h"
 #include "ast.h"
+#include <setjmp.h>
 
 typedef struct
 {
 	Tokens *ts;
 	size_t p;
 	Program *prog;
+	jmp_buf error_jmp;
+	int recovery_brace_depth;
 } Parser;
 
 void parse_program(Tokens *token_stream, Program *prog);
