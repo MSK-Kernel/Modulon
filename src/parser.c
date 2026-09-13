@@ -531,6 +531,78 @@ static char *decode_string(const char *raw)
 	return buffer.s;
 }
 
+
+static void parse_match_pattern(Parser *parser, MatchArm *arm)
+{
+	Expr *low;
+	Expr *high = NULL;
+	bool range = false;
+	if(peq(parser, "_") || peq(parser, "default")) {
+		parser->p++;
+		if(arm->is_default)
+			perr(parser, "duplicate default match pattern");
+		arm->is_default = true;
+	} else {
+		low = parse_expr(parser, 1);
+		if(paccept(parser, "...")) {
+			high = parse_expr(parser, 1);
+			range = true;
+		}
+		ARR_GROW(arm->patterns, arm->npatterns, arm->cappatterns, Expr *);
+		arm->patterns[arm->npatterns] = low;
+		ARR_GROW(arm->pattern_highs, arm->npatterns, arm->cappattern_highs, Expr *);
+		ARR_GROW(arm->pattern_ranges, arm->npatterns, arm->cappattern_ranges, bool);
+		arm->pattern_highs[arm->npatterns] = high;
+		arm->pattern_ranges[arm->npatterns] = range;
+		arm->npatterns++;
+	}
+	while(paccept(parser, ",")) {
+		if(peq(parser, "_") || peq(parser, "default")) {
+			parser->p++;
+			if(arm->npatterns || arm->is_default)
+				perr(parser, "wildcard must be the only match pattern");
+			arm->is_default = true;
+			break;
+		}
+		low = parse_expr(parser, 1);
+		high = NULL;
+		range = false;
+		if(paccept(parser, "...")) {
+			high = parse_expr(parser, 1);
+			range = true;
+		}
+		ARR_GROW(arm->patterns, arm->npatterns, arm->cappatterns, Expr *);
+		arm->patterns[arm->npatterns] = low;
+		ARR_GROW(arm->pattern_highs, arm->npatterns, arm->cappattern_highs, Expr *);
+		ARR_GROW(arm->pattern_ranges, arm->npatterns, arm->cappattern_ranges, bool);
+		arm->pattern_highs[arm->npatterns] = high;
+		arm->pattern_ranges[arm->npatterns] = range;
+		arm->npatterns++;
+	}
+	if(arm->is_default && arm->npatterns)
+		perr(parser, "wildcard cannot be combined with other match patterns");
+	if(paccept(parser, "if"))
+		arm->guard = parse_expr(parser, 1);
+	pexpect(parser, ":");
+}
+
+static Expr *parse_match_expr(Parser *parser)
+{
+	Expr *expression = new_expr(EX_MATCH);
+	expression->left = parse_expr(parser, 1);
+	pexpect(parser, "{");
+	while(!paccept(parser, "}")) {
+		MatchArm arm = {0};
+		parse_match_pattern(parser, &arm);
+		arm.expr = parse_expr(parser, 1);
+		if(!paccept(parser, ";"))
+			perr(parser, "match expression arm requires ';'");
+		ARR_GROW(expression->arms, expression->narms, expression->caparms, MatchArm);
+		expression->arms[expression->narms++] = arm;
+	}
+	return expression;
+}
+
 static Expr *parse_primary(Parser *parser)
 {
 	Token *token = ptok(parser);
@@ -605,6 +677,10 @@ static Expr *parse_primary(Parser *parser)
 		expression = new_expr(EX_NUM);
 		expression->num = (unsigned char)character;
 		expression->type = &T_INT;
+		return expression;
+	}
+	if(paccept(parser, "match")) {
+		expression = parse_match_expr(parser);
 		return expression;
 	}
 	if(paccept(parser, "typeof")) {
@@ -1012,6 +1088,19 @@ static Stmt *parse_stmt(Parser *parser)
 			pexpect(parser, ")");
 		}
 		statement->body = parse_stmt(parser);
+		return statement;
+	}
+	if(paccept(parser, "match")) {
+		statement = new_stmt(ST_MATCH);
+		statement->expr = parse_expr(parser, 1);
+		pexpect(parser, "{");
+		while(!paccept(parser, "}")) {
+			MatchArm arm = {0};
+			parse_match_pattern(parser, &arm);
+			arm.stmt = parse_stmt(parser);
+			ARR_GROW(statement->arms, statement->narms, statement->caparms, MatchArm);
+			statement->arms[statement->narms++] = arm;
+		}
 		return statement;
 	}
 	if(paccept(parser, "switch")) {

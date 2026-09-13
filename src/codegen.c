@@ -196,6 +196,14 @@ static CType *expr_type(Gen *generator, Expr *expression)
 		return &T_U64;
 	case EX_INITLIST:
 		return &T_VOID;
+	case EX_MATCH:
+	{
+		size_t index;
+		for(index = 0; index < expression->narms; index++)
+			if(expression->arms[index].expr)
+				return expr_type(generator, expression->arms[index].expr);
+		return &T_INT;
+	}
 	}
 	return &T_U64;
 }
@@ -599,9 +607,7 @@ static void expand_variable_formats(Gen *generator, Expr *expression)
 	length = strlen(format);
 	expanded = xmalloc(length + expression->nargs * 4 + 1);
 	for(index = 0; index < length; index++) {
-		if(format[index] == '%') {
-			if(index + 1 >= length || format[index + 1] != 'v')
-				fatal("printf strings may only use %%v for variables");
+		if(format[index] == '%' && index + 1 < length && format[index + 1] == 'v') {
 			if(variable_index >= expression->nargs)
 				fatal("not enough variables for %%v");
 			{
@@ -613,8 +619,6 @@ static void expand_variable_formats(Gen *generator, Expr *expression)
 		} else
 			expanded[output_index++] = format[index];
 	}
-	if(variable_index != expression->nargs)
-		fatal("too many variables for %%v");
 	expanded[output_index] = 0;
 	expression->args[0]->str = expanded;
 }
@@ -756,6 +760,109 @@ static void gen_incdec(Gen *generator, Expr *expression)
 	}
 }
 
+static void gen_stmt(Gen *generator, Stmt *statement);
+
+static bool match_unsigned(CType *type)
+{
+	return type && (type->kind == TY_U8 || type->kind == TY_U16 ||
+			type->kind == TY_U32 || type->kind == TY_U64 ||
+			type->kind == TY_ULONG);
+}
+
+static void gen_match_condition(Gen *generator, CType *subject_type, MatchArm *arm,
+				const char *success_label, const char *next_label)
+{
+	size_t index;
+	const char *below = match_unsigned(subject_type) ? "b" : "l";
+	const char *above = match_unsigned(subject_type) ? "a" : "g";
+	if(is_double_type(subject_type))
+		fatal("match does not support double values");
+	for(index = 0; index < arm->npatterns; index++) {
+		char *pattern_next = new_label(generator, ".Lmatchpattern");
+		if(is_double_type(expr_type(generator, arm->patterns[index])))
+			fatal("match patterns cannot be double values");
+		gen_expr(generator, arm->patterns[index]);
+		popreg(generator, "rcx");
+		emit(generator, "    cmp rcx, rax");
+		if(arm->pattern_ranges[index]) {
+			pushreg(generator, "rcx");
+			emit(generator, "    j%s %s", below, pattern_next);
+			gen_expr(generator, arm->pattern_highs[index]);
+			popreg(generator, "rcx");
+			emit(generator, "    cmp rcx, rax");
+			pushreg(generator, "rcx");
+			emit(generator, "    j%s %s", above, pattern_next);
+			emit(generator, "    jmp %s", success_label);
+		} else {
+			pushreg(generator, "rcx");
+			emit(generator, "    jz %s", success_label);
+		}
+		emit(generator, "%s:", pattern_next);
+	}
+	if(arm->is_default)
+		emit(generator, "    jmp %s", success_label);
+	else
+		emit(generator, "    jmp %s", next_label);
+}
+
+static void gen_match_expr(Gen *generator, Expr *expression)
+{
+	size_t index;
+	char *success_label;
+	char *next_label;
+	char *end_label = new_label(generator, ".Lmatchend");
+	gen_expr(generator, expression->left);
+	pushreg(generator, "rax");
+	for(index = 0; index < expression->narms; index++) {
+		success_label = new_label(generator, ".Lmatcharm");
+		next_label = new_label(generator, ".Lmatchnext");
+		gen_match_condition(generator, expr_type(generator, expression->left), &expression->arms[index], success_label, next_label);
+		emit(generator, "%s:", success_label);
+		if(expression->arms[index].guard) {
+			gen_expr(generator, expression->arms[index].guard);
+			emit(generator, "    test rax, rax");
+			emit(generator, "    jz %s", next_label);
+		}
+		popreg(generator, "rcx");
+		gen_expr(generator, expression->arms[index].expr);
+		emit(generator, "    jmp %s", end_label);
+		emit(generator, "%s:", next_label);
+	}
+	popreg(generator, "rcx");
+	emit(generator, "    xor eax, eax");
+	emit(generator, "%s:", end_label);
+}
+
+static void gen_match_stmt(Gen *generator, Stmt *statement)
+{
+	size_t index;
+	char *success_label;
+	char *next_label;
+	char *end_label = new_label(generator, ".Lmatchend");
+	gen_expr(generator, statement->expr);
+	pushreg(generator, "rax");
+	ARR_GROW(generator->breaks, generator->nbreaks, generator->capbreaks, char *);
+	generator->breaks[generator->nbreaks++] = end_label;
+	for(index = 0; index < statement->narms; index++) {
+		success_label = new_label(generator, ".Lmatcharm");
+		next_label = new_label(generator, ".Lmatchnext");
+		gen_match_condition(generator, expr_type(generator, statement->expr), &statement->arms[index], success_label, next_label);
+		emit(generator, "%s:", success_label);
+		if(statement->arms[index].guard) {
+			gen_expr(generator, statement->arms[index].guard);
+			emit(generator, "    test rax, rax");
+			emit(generator, "    jz %s", next_label);
+		}
+		popreg(generator, "rcx");
+		gen_stmt(generator, statement->arms[index].stmt);
+		emit(generator, "    jmp %s", end_label);
+		emit(generator, "%s:", next_label);
+	}
+	popreg(generator, "rcx");
+	emit(generator, "%s:", end_label);
+	generator->nbreaks--;
+}
+
 static void gen_expr(Gen *generator, Expr *expression)
 {
 	CType *type_1;
@@ -860,6 +967,9 @@ static void gen_expr(Gen *generator, Expr *expression)
 	case EX_INITLIST:
 		fatal("initializer list used as an expression");
 		return;
+	case EX_MATCH:
+		gen_match_expr(generator, expression);
+		return;
 	}
 	fatal("unsupported expression");
 }
@@ -897,6 +1007,9 @@ static long collect_locals(Gen *generator, Stmt *statement, long off)
 		off = collect_locals(generator, statement->init, off);
 		off = collect_locals(generator, statement->body, off);
 	}
+	else if(statement->kind == ST_MATCH)
+		for(index = 0; index < statement->narms; index++)
+			off = collect_locals(generator, statement->arms[index].stmt, off);
 	return off;
 }
 
@@ -994,6 +1107,9 @@ static void gen_stmt(Gen *generator, Stmt *statement)
 		generator->ncontinues--;
 		return;
 	}
+	case ST_MATCH:
+		gen_match_stmt(generator, statement);
+		return;
 	case ST_SWITCH:
 	case ST_CASE:
 	case ST_DEFAULT:

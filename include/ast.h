@@ -6,6 +6,7 @@
 typedef struct Expr Expr;
 typedef struct Stmt Stmt;
 typedef struct Decl Decl;
+typedef struct MatchArm MatchArm;
 
 typedef struct
 {
@@ -48,8 +49,23 @@ typedef enum
 	EX_SIZEOF,
 	EX_TYPEOF,
 	EX_TYPE,
-	EX_INITLIST
+	EX_INITLIST,
+	EX_MATCH
 } ExprKind;
+
+struct MatchArm
+{
+	Expr **patterns;
+	size_t npatterns, cappatterns;
+	Expr **pattern_highs;
+	size_t cappattern_highs;
+	bool *pattern_ranges;
+	size_t cappattern_ranges;
+	Expr *guard;
+	Expr *expr;
+	Stmt *stmt;
+	bool is_default;
+};
 
 struct Expr
 {
@@ -63,6 +79,8 @@ struct Expr
 	size_t nargs, capargs;
 	CType *type;
 	CType *sizeof_type;
+	MatchArm *arms;
+	size_t narms, caparms;
 };
 
 typedef enum
@@ -80,7 +98,8 @@ typedef enum
 	ST_BREAK,
 	ST_CONTINUE,
 	ST_ASM,
-	ST_EMPTY
+	ST_EMPTY,
+	ST_MATCH
 } StmtKind;
 
 struct Stmt
@@ -97,6 +116,8 @@ struct Stmt
 	char **asm_constraints;
 	Expr **asm_outputs;
 	size_t nasm_outputs, capasm_constraints, capasm_outputs;
+	MatchArm *arms;
+	size_t narms, caparms;
 	Stmt **children;
 	size_t nchildren, capchildren;
 };
