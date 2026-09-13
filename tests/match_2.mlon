@@ -1,0 +1,27 @@
+// Advanced pattern matching tests using Modulon match syntax
+
+int check_range(int x) {
+    match (x) {
+        0 : return 100;
+        1 : return 200;
+        2 : return 300;
+        default : return 0;
+    }
+}
+
+int check_combined(int x, int y) {
+    int val = x * 10 + y;
+    match (val) {
+        11 : return 11;
+        12 : return 12;
+        21 : return 21;
+        22 : return 22;
+        default : return 0;
+    }
+}
+
+int main() {
+    int a = check_range(1);
+    int b = check_combined(2, 2);
+    return a + b;
+}
