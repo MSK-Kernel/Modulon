@@ -1,16 +1,58 @@
 #include "common.h"
 
-//init functions
+int diagnostic_errors = 0;
+int diagnostic_warnings = 0;
 
-void fatal(const char *fmt, ...)
+static void diagnostic_line(const char *source, int line, int col)
+{
+	const char *start;
+	const char *end;
+	int index;
+	if(!source || line < 1)
+		return;
+	start = source;
+	for(index = 1; index < line && *start; index++) {
+		const char *next = strchr(start, '\n');
+		if(!next)
+			return;
+		start = next + 1;
+	}
+	end = strchr(start, '\n');
+	if(!end)
+		end = start + strlen(start);
+	fprintf(stderr, "   |\n%2d | %.*s\n   | ", line, (int)(end - start), start);
+	for(index = 1; index < col; index++)
+		fputc(start[index - 1] == '\t' ? '\t' : ' ', stderr);
+	fprintf(stderr, "^\n");
+}
+
+void diagnostic_report(DiagnosticKind kind, const char *file, const char *source, int line, int col, const char *fmt, ...)
 {
 	va_list argument_list;
-	fprintf(stderr, "\033[1mModulon compiler: \033[0m\033[1;31mfatal error:\033[0m Compilation failed: ");
+	const char *label = kind == DIAG_ERROR ? "error" : "warning";
+	const char *color = kind == DIAG_ERROR ? "\033[1;31m" : "\033[1;34m";
+	if(kind == DIAG_ERROR)
+		diagnostic_errors++;
+	else
+		diagnostic_warnings++;
+	fprintf(stderr, "\033[1mModulon compiler: \033[0m%s%s:\033[0m %s:%d:%d: ",
+		color, label, file ? file : "<input>", line, col);
 	va_start(argument_list, fmt);
 	vfprintf(stderr, fmt, argument_list);
 	va_end(argument_list);
 	fputc('\n', stderr);
-	exit(0);
+	diagnostic_line(source, line, col);
+}
+
+void fatal(const char *fmt, ...)
+{
+	va_list argument_list;
+	fprintf(stderr, "\033[1mModulon compiler: \033[0m\033[1;31mfatal error:\033[0m ");
+	va_start(argument_list, fmt);
+	vfprintf(stderr, fmt, argument_list);
+	va_end(argument_list);
+	fputc('\n', stderr);
+	exit(1);
 }
 //Compiler memory functions.
 

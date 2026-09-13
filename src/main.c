@@ -104,6 +104,18 @@ int main(int argc, char **argv)
 		Tokens tokens = lex_source(text, src[index]);
 		parse_program(&tokens, &prog);
 	}
+	if(diagnostic_errors || diagnostic_warnings) {
+		fprintf(stderr, "\n\033[1mModulon compiler: \033[0m");
+		if(diagnostic_errors)
+			fprintf(stderr, "\033[1;31m%d error%s\033[0m", diagnostic_errors, diagnostic_errors == 1 ? "" : "s");
+		if(diagnostic_errors && diagnostic_warnings)
+			fprintf(stderr, ", ");
+		if(diagnostic_warnings)
+			fprintf(stderr, "\033[1;34m%d warning%s\033[0m", diagnostic_warnings, diagnostic_warnings == 1 ? "" : "s");
+		fputc('\n', stderr);
+	}
+	if(diagnostic_errors)
+		return 1;
 	(void)freestanding;
 	if(run_jit && (compile_only || assembly_only || target_i386))
 		fatal("--jit cannot be combined with -S, -c, or -m32");

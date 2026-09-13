@@ -87,8 +87,10 @@ Tokens lex_source(const char *text, const char *file)
 					col++;
 				}
 			}
-			if(index + 1 >= count)
-				fatal("%s:%d:%d: unterminated comment", file, line, col);
+			if(index + 1 >= count) {
+				diagnostic_report(DIAG_ERROR, file, text, line, col, "unterminated comment");
+				break;
+			}
 			index += 2;
 			col += 2;
 			continue;
@@ -178,8 +180,10 @@ Tokens lex_source(const char *text, const char *file)
 					else if(value == cursor)
 						break;
 				}
-				if(text[index - 1] != cursor)
-					fatal("%s:%d:%d: unterminated literal", file, source_line, scan_code);
+				if(text[index - 1] != cursor) {
+					diagnostic_report(DIAG_ERROR, file, text, source_line, scan_code, "unterminated literal");
+					continue;
+				}
 				tok_push(&ts, cursor == '"' ? TK_STR : TK_CHAR, text + start, index - start, source_line, scan_code);
 				continue;
 			}
@@ -203,11 +207,14 @@ Tokens lex_source(const char *text, const char *file)
 				col++;
 				continue;
 			}
-			fatal("%s:%d:%d: unexpected character '%c'", file, line, col, character);
+			diagnostic_report(DIAG_ERROR, file, text, line, col, "unexpected character '%c'", character);
+			index++;
+			col++;
 		}
 	token_done:;
 	}
 	tok_push(&ts, TK_EOF, "<eof>", 5, line, col);
 	ts.file = file;
+	ts.source = text;
 	return ts;
 }

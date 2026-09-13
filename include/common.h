@@ -41,6 +41,16 @@ typedef struct
 	size_t cap;
 } Buf;
 
+typedef enum
+{
+	DIAG_ERROR,
+	DIAG_WARNING
+} DiagnosticKind;
+
+extern int diagnostic_errors;
+extern int diagnostic_warnings;
+
+void diagnostic_report(DiagnosticKind kind, const char *file, const char *source, int line, int col, const char *fmt, ...);
 void fatal(const char *fmt, ...);
 void *xmalloc(size_t count);
 void *xcalloc(size_t argument_count, size_t element_size_1);
