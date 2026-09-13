@@ -557,6 +557,22 @@ static void assemble_instruction(AsmImage *array, char *line)
 		emit_relative_fixup(array, 0, name, true, 0x85);
 		return;
 	}
+	if(sscanf(line, "jb %255s", name) == 1) {
+		emit_relative_fixup(array, 0, name, true, 0x82);
+		return;
+	}
+	if(sscanf(line, "ja %255s", name) == 1) {
+		emit_relative_fixup(array, 0, name, true, 0x87);
+		return;
+	}
+	if(sscanf(line, "jl %255s", name) == 1) {
+		emit_relative_fixup(array, 0, name, true, 0x8c);
+		return;
+	}
+	if(sscanf(line, "jg %255s", name) == 1) {
+		emit_relative_fixup(array, 0, name, true, 0x8f);
+		return;
+	}
 	if(sscanf(line, "call %255s", name) == 1) {
 		char *suffix = strstr(name, "@PLT");
 		if(suffix)

@@ -452,6 +452,8 @@ static CType *i386_expr_type(I386Gen *gen, Expr *expression)
 		return &T_U32;
 	case EX_INITLIST:
 		return &T_VOID;
+	case EX_MATCH:
+		return &T_INT;
 	}
 	return &T_U32;
 }
@@ -1318,9 +1320,7 @@ static void i386_expand_variable_formats(I386Gen *gen, Expr *expression)
 	length = strlen(format);
 	expanded = xmalloc(length + expression->nargs * 4 + 1);
 	for(index = 0; index < length; index++) {
-		if(format[index] == '%') {
-			if(index + 1 >= length || format[index + 1] != 'v')
-				fatal("printf strings may only use %%v for variables");
+		if(format[index] == '%' && index + 1 < length && format[index + 1] == 'v') {
 			if(variable_index >= expression->nargs)
 				fatal("not enough variables for %%v");
 			{
@@ -1332,8 +1332,6 @@ static void i386_expand_variable_formats(I386Gen *gen, Expr *expression)
 		} else
 			expanded[output_index++] = format[index];
 	}
-	if(variable_index != expression->nargs)
-		fatal("too many variables for %%v");
 	expanded[output_index] = 0;
 	expression->args[0]->str = expanded;
 }
@@ -1529,6 +1527,9 @@ static void i386_gen_expression(I386Gen *gen, Expr *expression)
 	case EX_INITLIST:
 		fatal("initializer list used as an expression");
 		return;
+	case EX_MATCH:
+		fatal("match expressions are not supported in -m32 mode");
+		return;
 	}
 	fatal("unsupported i386 expression");
 }
@@ -1707,6 +1708,9 @@ static void i386_gen_statement(I386Gen *gen, Stmt *statement)
 		i386_define_label(gen, done_label);
 		gen->nbreak_labels--;
 		gen->ncontinue_labels--;
+		return;
+	case ST_MATCH:
+		fatal("match statements are not supported in -m32 mode");
 		return;
 	case ST_SWITCH:
 	{

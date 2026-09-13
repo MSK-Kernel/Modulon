@@ -122,7 +122,7 @@ Tokens lex_source(const char *text, const char *file)
 						index++;
 						col++;
 					}
-					if(index < count && text[index] == '.') {
+					if(index < count && text[index] == '.' && !(index + 1 < count && text[index + 1] == '.')) {
 						floating = true;
 						index++;
 						col++;
@@ -185,7 +185,7 @@ Tokens lex_source(const char *text, const char *file)
 			}
 			{
 				static const char *ops[] = {
-					"<<=", ">>=", "...", "==", "!=", "<=", ">=", "&&", "||", "++", "--", "->", "<<", ">>", "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^=", NULL};
+					"<<=", ">>=", "...", "..", "==", "!=", "<=", ">=", "&&", "||", "++", "--", "->", "<<", ">>", "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^=", NULL};
 				int third_index;
 				for(third_index = 0; ops[third_index]; third_index++) {
 					size_t token_length = strlen(ops[third_index]);

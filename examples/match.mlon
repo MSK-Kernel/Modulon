@@ -1,0 +1,32 @@
+#include <stdio.h>
+
+int main()
+{
+	int score = 85;
+	match score
+	{
+		0..59:
+			printf("Fail\n");
+		60..69:
+			printf("D\n");
+		70..79:
+			printf("C\n");
+		80..89:
+			printf("B\n");
+		90..100:
+			printf("A\n");
+		_:
+			printf("Invalid\n");
+	}
+	var description = match score
+	{
+		0..59: "Failing";
+		60..69: "Passing";
+		70..79: "Good";
+		80..89: "Very good";
+		90..100: "Excellent";
+		_: "Invalid";
+	};
+	printf("%v\n", description);
+	return 0;
+}
