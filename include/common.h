@@ -23,7 +23,7 @@
 #define PATH_MAX 4096
 #endif
 
-#define VERSION "Modulon 1.1-beta5"
+#define VERSION "Modulon 1.1-rc1"
 #define ARR_GROW(a, n, cap, type)                                  \
 	do                                                         \
 	{                                                          \
