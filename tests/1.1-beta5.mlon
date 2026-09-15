@@ -15,5 +15,5 @@ int main() {
         int res2 = eval_code(404);
         int res3 = eval_code(999);
     
-        return res1 + res2 + res3;
+        int sum = res1 + res2 + res3;
 }
