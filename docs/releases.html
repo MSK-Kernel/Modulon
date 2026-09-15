@@ -142,6 +142,56 @@
 	.release-list .date { color: #999; font-size: 14px; }
 	.release-list .get { font-weight: 700; }
 
+	.latest-release {
+		background: #f5f7ff;
+		border: 1px solid #d6ddfa;
+		border-left: 5px solid #1e3fd6;
+		border-radius: 8px;
+		padding: 32px 36px;
+		margin: 0 0 40px;
+	}
+
+	.latest-release .label {
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		font-size: 12px;
+		font-weight: 700;
+		color: #1e3fd6;
+		margin: 0 0 10px;
+	}
+
+	.latest-release .version {
+		font-size: 30px;
+		font-weight: 700;
+		color: #1a1d24;
+		margin: 0 0 8px;
+	}
+
+	.latest-release .date {
+		color: #888;
+		font-size: 14px;
+		margin: 0 0 18px;
+	}
+
+	.latest-release p.desc {
+		font-size: 15px;
+		line-height: 1.6;
+		color: #444;
+		margin: 0 0 22px;
+	}
+
+	.latest-release .get {
+		display: inline-block;
+		background: #1e3fd6;
+		color: #fff;
+		font-weight: 700;
+		font-size: 14px;
+		padding: 12px 22px;
+		border-radius: 6px;
+	}
+
+	.latest-release .get:hover { background: #1631a8; text-decoration: none; }
+
 	footer {
 		background: #292c33;
 		color: #9aa0ac;
@@ -188,6 +238,14 @@
 	<div class="container">
 
 		<p class="intro">Stable releases are tested and recommended for general use. Looking for early builds instead? Check the <a href="releases-beta.html">beta channel</a>.</p>
+
+		<div class="latest-release">
+			<p class="label">Latest Stable Release</p>
+			<p class="version">No stable builds yet</p>
+			<p class="date">Modulon is still in beta. </p>
+			<p class="desc">Once a stable release is tagged, it'll be featured here with its version, release date, and changelog highlights.</p>
+			<a class="get" href="releases-beta.html">View beta releases</a>
+		</div>
 
 		<ul class="release-list">
 			<li>
