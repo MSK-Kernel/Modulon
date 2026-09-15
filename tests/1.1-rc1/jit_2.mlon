@@ -1,0 +1,29 @@
+// JIT test: rodata string labels, multiple distinct external imports
+// (each gets its own GOT slot + thunk), and match-expression codegen,
+// all resolved and executed in-process by the JIT.
+#include <stdio.h>
+#include <string.h>
+
+string banner = "modulon jit";
+
+int classify(int code)
+{
+	match code {
+		0...199: return -1;
+		200...299: return 0;
+		400...499: return 1;
+		_: return 2;
+	}
+}
+
+int main()
+{
+	int len = strlen(banner);
+	int total = classify(204) + classify(404) + classify(999);
+	printf("banner: %v (len %v)\n", banner, len);
+	printf("classified total: %v\n", total);
+	if(len == 11 && total == 3) {
+		return 0;
+	}
+	return 1;
+}
