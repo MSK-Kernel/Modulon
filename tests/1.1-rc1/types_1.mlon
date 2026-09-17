@@ -1,0 +1,27 @@
+//Type test: typeof() compared against type literals for several base
+//types, plus explicit casts that narrow a value across type
+//boundaries (int -> double -> int, and int -> char truncation).
+#include <stdio.h>
+
+int main()
+{
+	int score = 92;
+	string grade = "A";
+	double average = 3.75;
+	bool passed = 1;
+	int checks = 0;
+	if(typeof(score) == int) checks = checks + 1;
+	if(typeof(grade) == string) checks = checks + 1;
+	if(typeof(average) == double) checks = checks + 1;
+	if(typeof(passed) == bool) checks = checks + 1;
+	double converted = (double)score;
+	int truncated = (int)(converted / 10.0);
+	char narrowed = (char)321;
+	printf("checks: %v\n", checks);
+	printf("truncated: %v\n", truncated);
+	printf("narrowed: %v\n", narrowed);
+	if(checks == 4 && truncated == 9 && narrowed == 65) {
+		return 0;
+	}
+	return 1;
+}
