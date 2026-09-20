@@ -28,38 +28,10 @@
 		border-collapse: collapse;
 	}
 
-	td.sidebar {
-		width: 150px;
+	td.main {
 		vertical-align: top;
 		padding: 0 10px 10px 0;
 	}
-
-	td.main {
-		vertical-align: top;
-		padding: 0 10px 10px 14px;
-		border-left: 1px solid #000;
-	}
-
-	.side-box { margin-bottom: 2px; }
-
-	.side-head {
-		background: #cfe3ff;
-		border: 1px solid #7fa8e0;
-		font-weight: bold;
-		padding: 3px 6px;
-		font-size: 13px;
-	}
-
-	.side-body {
-		border-left: 1px solid #7fa8e0;
-		border-right: 1px solid #7fa8e0;
-		border-bottom: 1px solid #7fa8e0;
-		padding: 4px 8px 8px;
-		margin-bottom: 8px;
-		line-height: 1.7;
-	}
-
-	.side-body a { display: block; }
 
 	h1.page-title {
 		font-family: Georgia, 'Times New Roman', Times, serif;
@@ -158,8 +130,7 @@
 	footer p { margin: 6px 0; }
 
 	@media (max-width: 700px) {
-		table.layout, tbody, tr, td.sidebar, td.main { display: block; width: 100%; }
-		td.main { border-left: none; border-top: 1px solid #000; padding-left: 0; }
+		table.layout, tbody, tr, td.main { display: block; width: 100%; }
 		.top-flex { flex-direction: column; }
 		.top-flex h1.page-title { text-align: left; }
 	}
@@ -169,36 +140,6 @@
 
 <table class="layout" cellspacing="0" cellpadding="0">
 <tr>
-
-<td class="sidebar">
-
-	<div class="side-box">
-		<div class="side-head">About Modulon</div>
-		<div class="side-body">
-			<a href="releases.html">Releases</a>
-			<a href="releases-beta.html">Snapshots</a>
-			<a href="contributors.html">Contributors</a>
-			<a href="https://github.com/roccohimel/Modulon">Source Code</a>
-		</div>
-	</div>
-
-	<div class="side-box">
-		<div class="side-head">Documentation</div>
-		<div class="side-body">
-			<a href="blog.html">Rocco Himel's blog</a>
-			<a href="installation.html">Installation</a>
-			<a href="faq.html">FAQ</a>
-		</div>
-	</div>
-
-	<div class="side-box">
-		<div class="side-head">Issues</div>
-		<div class="side-body">
-			<a href="https://github.com/roccohimel/Modulon/issues">All issues</a>
-			<a href="https://github.com/roccohimel/Modulon/issues/new">New issue</a>
-		</div>
-	</div>
-</td>
 
 <td class="main">
 
