@@ -5,99 +5,116 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Releases - Modulon</title>
 <link rel="icon" type="image/png" href="favicon.png">
-<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&family=Source+Code+Pro:wght@400;600&display=swap" rel="stylesheet">
 <style>
 	* { box-sizing: border-box; }
 
-	body {
+	html, body {
 		margin: 0;
-		font-family: 'Open Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-		color: #333;
+		padding: 0;
+		font-family: Verdana, Arial, Helvetica, sans-serif;
+		font-size: 13px;
+		color: #000;
 		background: #fff;
 	}
 
-	a { color: #1857c4; text-decoration: none; }
-	a:hover { text-decoration: underline; }
+	a { color: #1857c4; text-decoration: underline; }
+	a:hover { color: #b5651d; }
+	a:visited { color: #63308f; }
 
-	code, pre, .mono { font-family: 'Source Code Pro', Consolas, monospace; }
-
-	.topbar {
-		background: #ffffff;
-		border-bottom: 3px solid #1e3fd6;
+	table.layout {
+		width: 100%;
+		max-width: 1200px;
+		margin: 0 auto;
+		border-collapse: collapse;
 	}
 
-	.topbar .inner {
-		max-width: 980px;
-		margin: 0 auto;
-		padding: 0 20px;
+	td.sidebar {
+		width: 150px;
+		vertical-align: top;
+		padding: 0 10px 10px 0;
+	}
+
+	td.main {
+		vertical-align: top;
+		padding: 0 10px 10px 14px;
+		border-left: 1px solid #000;
+	}
+
+	.side-box { margin-bottom: 2px; }
+
+	.side-head {
+		background: #cfe3ff;
+		border: 1px solid #7fa8e0;
+		font-weight: bold;
+		padding: 3px 6px;
+		font-size: 13px;
+	}
+
+	.side-body {
+		border-left: 1px solid #7fa8e0;
+		border-right: 1px solid #7fa8e0;
+		border-bottom: 1px solid #7fa8e0;
+		padding: 4px 8px 8px;
+		margin-bottom: 8px;
+		line-height: 1.7;
+	}
+
+	.side-body a { display: block; }
+
+	h1.page-title {
+		font-family: Georgia, 'Times New Roman', Times, serif;
+		font-size: 26px;
+		margin: 6px 0 14px;
+		color: #111;
+	}
+
+	.top-flex {
 		display: flex;
-		align-items: center;
 		justify-content: space-between;
-		height: 58px;
+		align-items: flex-start;
+		gap: 20px;
 	}
 
-	.topbar .brand {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-		color: #292c33;
-		font-weight: 700;
-		font-size: 18px;
+	.top-flex h1.page-title { text-align: right; margin: 6px 0 14px; }
+
+	.logo-box { flex: 0 0 auto; }
+	.logo-box img { width: 64px; height: 64px; display: block; }
+
+	.main p, .main li { line-height: 1.6; }
+	.main p { margin: 0 0 12px; }
+
+	.info-box {
+		border: 1px solid #999;
+		padding: 10px 14px;
+		margin: 14px 0 18px;
+		background: #fbfbfb;
 	}
 
-	.topbar .brand img { width: 26px; height: 26px; }
+	.info-box .branch { margin: 2px 0 10px 18px; font-size: 12.5px; color: #333; }
 
-	.topbar nav a {
-		color: #555;
-		margin-left: 26px;
-		font-size: 14px;
-		font-weight: 600;
+	hr.sep { border: none; border-top: 1px solid #000; margin: 18px 0; }
+
+	h2.news-title, h2.section-title {
+		font-family: Georgia, 'Times New Roman', Times, serif;
+		font-size: 19px;
+		margin: 0 0 10px;
 	}
 
-	.topbar nav a:hover { color: #1e3fd6; text-decoration: none; }
+	.news-date { font-weight: bold; margin: 14px 0 2px; }
+	.news-item { margin: 0 0 10px 18px; }
 
-	.hero {
-		background: linear-gradient(180deg, #2447e0 0%, #1a37bd 100%);
-		color: #fff;
-		text-align: center;
-		padding: 56px 20px 60px;
-	}
-
-	.hero h1 {
-		font-size: 38px;
-		margin: 0 0 14px;
-		font-weight: 700;
-	}
-
-	.hero p {
-		font-size: 17px;
-		max-width: 560px;
-		margin: 0 auto;
-		color: #dbe2ff;
-		line-height: 1.6;
-	}
-
-	.channel-tabs {
-		display: flex;
-		justify-content: center;
-		gap: 8px;
-		margin: -22px auto 0;
-		position: relative;
-		max-width: 300px;
-	}
+	.channel-tabs { margin: 0 0 18px; }
 
 	.channel-tabs a {
-		flex: 1;
-		text-align: center;
-		background: #fff;
-		border: 1px solid #ddd;
-		padding: 10px 18px;
-		font-size: 14px;
-		font-weight: 600;
-		color: #555;
+		display: inline-block;
+		background: #eaf3ff;
+		border: 1px solid #7fa8e0;
+		padding: 5px 16px;
+		font-size: 12.5px;
+		font-weight: bold;
+		text-decoration: none;
+		color: #333;
 	}
-
-	.channel-tabs a:hover { text-decoration: none; color: #1e3fd6; }
 
 	.channel-tabs a.active {
 		background: #1e3fd6;
@@ -105,161 +122,115 @@
 		color: #fff;
 	}
 
-	.channel-tabs a:first-child { border-radius: 4px 0 0 4px; }
-	.channel-tabs a:last-child { border-radius: 0 4px 4px 0; }
-
-	.container {
-		max-width: 760px;
-		margin: 0 auto;
-		padding: 60px 20px 30px;
+	table.release-table {
+		border-collapse: collapse;
+		width: 100%;
+		margin-top: 10px;
 	}
 
-	.container > p.intro {
-		font-size: 16px;
-		line-height: 1.75;
-		color: #444;
-		margin: 0 0 40px;
+	table.release-table th {
+		text-align: left;
+		background: #eaf3ff;
+		border: 1px solid #ccc;
+		padding: 6px 10px;
+		font-size: 12.5px;
 	}
 
-	.release-list {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-	}
-
-	.release-list li {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 16px 0;
-		border-bottom: 1px solid #e2e2e2;
-		font-size: 16px;
-	}
-
-	.release-list li:last-child { border-bottom: none; }
-
-	.release-list .version { font-weight: 600; color: #222; }
-	.release-list .date { color: #999; font-size: 14px; }
-	.release-list .get { font-weight: 700; }
-
-	.latest-release {
-		background: #f5f7ff;
-		border: 1px solid #d6ddfa;
-		border-left: 5px solid #1e3fd6;
-		border-radius: 8px;
-		padding: 32px 36px;
-		margin: 0 0 40px;
-	}
-
-	.latest-release .label {
-		text-transform: uppercase;
-		letter-spacing: 0.06em;
-		font-size: 12px;
-		font-weight: 700;
-		color: #1e3fd6;
-		margin: 0 0 10px;
-	}
-
-	.latest-release .version {
-		font-size: 30px;
-		font-weight: 700;
-		color: #1a1d24;
-		margin: 0 0 8px;
-	}
-
-	.latest-release .date {
-		color: #888;
-		font-size: 14px;
-		margin: 0 0 18px;
-	}
-
-	.latest-release p.desc {
-		font-size: 15px;
-		line-height: 1.6;
-		color: #444;
-		margin: 0 0 22px;
-	}
-
-	.latest-release .get {
-		display: inline-block;
-		background: #1e3fd6;
-		color: #fff;
-		font-weight: 700;
-		font-size: 14px;
-		padding: 12px 22px;
-		border-radius: 6px;
-	}
-
-	.latest-release .get:hover { background: #1631a8; text-decoration: none; }
-
-	footer {
-		background: #292c33;
-		color: #9aa0ac;
-		text-align: center;
-		padding: 26px 20px;
+	table.release-table td {
+		border: 1px solid #ccc;
+		padding: 6px 10px;
 		font-size: 13px;
 	}
 
-	footer a { color: #cfd2da; }
+	table.release-table .get { font-weight: bold; }
 
-	@media (max-width: 640px) {
-		.hero h1 { font-size: 28px; }
-		.topbar nav a { margin-left: 14px; font-size: 13px; }
+	.main ul { padding-left: 20px; margin: 0 0 14px; }
+
+	footer {
+		max-width: 1200px;
+		margin: 20px auto 0;
+		padding: 14px 10px 26px;
+		border-top: 1px solid #000;
+		font-size: 12px;
+		color: #333;
+	}
+
+	footer p { margin: 6px 0; }
+
+	@media (max-width: 700px) {
+		table.layout, tbody, tr, td.sidebar, td.main { display: block; width: 100%; }
+		td.main { border-left: none; border-top: 1px solid #000; padding-left: 0; }
+		.top-flex { flex-direction: column; }
+		.top-flex h1.page-title { text-align: left; }
 	}
 </style>
 </head>
 <body>
 
-	<div class="topbar">
-		<div class="inner">
-			<div class="brand">
-				<a href="index.html" style="display:flex;align-items:center;gap:10px;color:inherit;text-decoration:none;">
-					<img src="favicon.png" alt="Modulon logo">
-					Modulon
-				</a>
-			</div>
-			<nav>
-				<a href="releases.html">Releases</a>
-				<a href="https://github.com/roccohimel/Modulon">Source Code</a>
-			</nav>
+<table class="layout" cellspacing="0" cellpadding="0">
+<tr>
+
+<td class="sidebar">
+
+	<div class="side-box">
+		<div class="side-head">About Modulon</div>
+		<div class="side-body">
+			<a href="releases.html">Releases</a>
+			<a href="releases-beta.html">Snapshots</a>
+			<a href="contributors.html">Contributors</a>
+			<a href="https://github.com/roccohimel/Modulon">Source Code</a>
 		</div>
 	</div>
 
-	<div class="hero">
-		<h1>Releases</h1>
-		<p>Stable builds of the Modulon compiler and standard library.</p>
+	<div class="side-box">
+		<div class="side-head">Documentation</div>
+		<div class="side-body">
+			<a href="installation.html">Installation</a>
+			<a href="faq.html">FAQ</a>
+		</div>
 	</div>
+
+	<div class="side-box">
+		<div class="side-head">Issues</div>
+		<div class="side-body">
+			<a href="https://github.com/roccohimel/Modulon/issues">All issues</a>
+			<a href="https://github.com/roccohimel/Modulon/issues/new">New issue</a>
+		</div>
+	</div>
+
+</td>
+
+<td class="main">
+
+	<h1 class="page-title">Releases</h1>
+	<p>Stable builds of the Modulon compiler and standard library.</p>
 
 	<div class="channel-tabs">
 		<a href="releases.html" class="active">Stable</a>
 		<a href="releases-beta.html">Beta</a>
 	</div>
 
-	<div class="container">
+	<p>Stable releases are tested and recommended for general use. Looking for early builds instead? Check the <a href="releases-beta.html">beta channel</a>.</p>
 
-		<p class="intro">Stable releases are tested and recommended for general use. Looking for early builds instead? Check the <a href="releases-beta.html">beta channel</a>.</p>
-
-		<div class="latest-release">
-			<p class="label">Latest Stable Release</p>
-			<p class="version">No stable builds yet</p>
-			<p class="date">Modulon is still in beta. </p>
-			<p class="desc">Once a stable release is tagged, it'll be featured here with its version, release date, and changelog highlights.</p>
-			<a class="get" href="releases-beta.html">View beta releases</a>
-		</div>
-
-		<ul class="release-list">
-			<li>
-				<span class="version"></span>
-				<span class="date">No stable builds have been released.</span>
-				<a class="get" href="https://github.com/roccohimel/Modulon/releases"></a>
-			</li>
-		</ul>
-
+	<div class="info-box">
+		<p><strong>Latest Stable Release:</strong> No stable builds yet</p>
+		<p>Modulon is still in beta. Once a stable release is tagged, it will be featured here with its version, release date, and changelog highlights.</p>
+		<p><a href="releases-beta.html">View beta releases &raquo;</a></p>
 	</div>
 
-	<footer>
-		<p>Modulon is an open-source programming language. &middot; <a href="https://github.com/roccohimel/Modulon">GitHub</a> &middot; <a href="mailto:modulon.software@gmail.com">Email</a></p>
-	</footer>
+	<table class="release-table">
+		<tr><th>Version</th><th>Date</th><th>Download</th></tr>
+		<tr><td colspan="3">No stable builds have been released yet.</td></tr>
+	</table>
+
+</td>
+</tr>
+</table>
+
+<footer>
+	<p>Please send questions and suggestions about Modulon to <a href="mailto:modulon.software@gmail.com">modulon.software@gmail.com</a>.</p>
+	<p>Copyright &copy; 2026 Rocco Himel and "MSK-Kernel". Modulon is free and open-source software.</p>
+</footer>
 
 </body>
 </html>

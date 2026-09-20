@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Modulon Programming Language</title>
+<title>FAQ - Modulon</title>
 <link rel="icon" type="image/png" href="favicon.png">
 <style>
 	* { box-sizing: border-box; }
@@ -68,20 +68,17 @@
 		color: #111;
 	}
 
-	.title-bar {
+	.top-flex {
 		display: flex;
-		align-items: center;
 		justify-content: space-between;
-		margin: 6px 0 14px;
+		align-items: flex-start;
+		gap: 20px;
 	}
 
-	.title-bar h1.page-title { margin: 0; }
+	.top-flex h1.page-title { text-align: right; margin: 6px 0 14px; }
 
-	.title-bar img.logo {
-		height: 40px;
-		width: auto;
-		margin-left: 12px;
-	}
+	.logo-box { flex: 0 0 auto; }
+	.logo-box img { width: 64px; height: 64px; display: block; }
 
 	.main p, .main li { line-height: 1.6; }
 	.main p { margin: 0 0 12px; }
@@ -163,6 +160,8 @@
 	@media (max-width: 700px) {
 		table.layout, tbody, tr, td.sidebar, td.main { display: block; width: 100%; }
 		td.main { border-left: none; border-top: 1px solid #000; padding-left: 0; }
+		.top-flex { flex-direction: column; }
+		.top-flex h1.page-title { text-align: left; }
 	}
 </style>
 </head>
@@ -203,49 +202,22 @@
 
 <td class="main">
 
-	<div class="title-bar">
-		<h1 class="page-title">Welcome to the Modulon home page!</h1>
-		<img class="logo" src="favicon.png" alt="Modulon logo" style="width: 100px; height: 100px;">
-	</div>
+	<h1 class="page-title">Frequently Asked Questions</h1>
 
-	<div class="intro">
-		<p>Modulon, the Modulon programming language, is a C-inspired language built for simplicity and speed, keeping native performance and familiar syntax while eliminating unnecessary complexity. It supports both <a href="#aot">AOT</a> and <a href="#jit">JIT</a> compilation, as well as a built-in assembler.</p>
+	<p><strong>What is Modulon?</strong><br>
+	Modulon is a C-inspired programming language built for simplicity and speed, keeping native performance and familiar syntax while eliminating unnecessary complexity.</p>
 
-		<p>We strive to keep Modulon simple, fast, portable, and suitable for both low-level and general-purpose development, and encourage everyone to <a href="https://github.com/roccohimel/Modulon">contribute changes</a> and <a href="releases-beta.html">help testing</a> the beta builds. Our sources are readily and freely available via <a href="https://github.com/roccohimel/Modulon">Git</a>.</p>
-	</div>
+	<p><strong>Is Modulon stable?</strong><br>
+	Not yet &mdash; Modulon is currently in beta. See the <a href="releases-beta.html">beta releases</a> page for the latest snapshots.</p>
 
-	<div class="info-box">
-		<p><strong>Current release series:</strong> <a href="releases-beta.html">Modulon 1.1-beta5</a> (released 2026-09-14)</p>
-		<p class="branch">Branch status: open for testing and bugfixes only.</p>
+	<p><strong>Where can I get the source code?</strong><br>
+	Modulon's source is available on GitHub at <a href="https://github.com/roccohimel/Modulon">github.com/roccohimel/Modulon</a>.</p>
 
-		<p><strong>Previous snapshot:</strong> <a href="releases-beta.html">Modulon 1.1-beta4</a> (released 2026-09-12)</p>
-		<p class="branch">Branch status: superseded, kept for reference.</p>
+	<p><strong>How do I report a bug?</strong><br>
+	Open a <a href="https://github.com/roccohimel/Modulon/issues/new">new issue</a> on GitHub, or check <a href="https://github.com/roccohimel/Modulon/issues">existing issues</a> first.</p>
 
-		<p><strong>Active development (mainline):</strong> will become Modulon 1.1</p>
-		<p class="branch">Status: Beta (open for bugfixes and new feature testing).</p>
-	</div>
-
-	<hr class="sep">
-
-	<h2 class="news-title">News/Announcements</h2>
-
-	<div class="news-date">September 14, 2026</div>
-	<div class="news-item"><a href="releases-beta.html">Modulon 1.1-beta5</a> has been released.</div>
-
-	<div class="news-date">September 12, 2026</div>
-	<div class="news-item"><a href="releases-beta.html">Modulon 1.1-beta4</a> has been released.</div>
-
-	<div class="news-date">September 11, 2026</div>
-	<div class="news-item"><a href="releases-beta.html">Modulon 1.1-beta3</a> has been released.</div>
-	<div class="news-item"><a href="releases-beta.html">Modulon 1.1-beta2</a> has been released.</div>
-
-	<div class="news-date">September 10, 2026</div>
-	<div class="news-item"><a href="releases-beta.html">Modulon 1.1-beta1</a> has been released, the first public snapshot of the 1.1 series.</div>
-
-	<div class="news-date">Earlier</div>
-	<div class="news-item">Modulon began development, built from the existing AneoC compiler technology and expanded into a complete language and toolchain.</div>
-
-	<p style="margin-top:14px;"><a href="#older-news">Older news and announcements...</a></p>
+	<p><strong>What is Modulon built on?</strong><br>
+	Modulon is developed from the existing AneoC compiler technology, expanded into a complete language and toolchain.</p>
 
 </td>
 </tr>
