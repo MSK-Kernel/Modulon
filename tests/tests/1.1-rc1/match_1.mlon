@@ -1,0 +1,35 @@
+//Pattern matching test: match statement with comma-separated discrete
+//patterns, an inclusive range pattern, a guarded pattern, and a
+//default/wildcard fallback.
+#include <stdio.h>
+
+string classify_day(int day, int weekend_bonus)
+{
+	match day {
+		1, 2, 3, 4, 5: return "weekday";
+		6, 7 if weekend_bonus > 0: return "bonus weekend";
+		6, 7: return "weekend";
+		8...31: return "out of range";
+		_: return "invalid";
+	}
+	return "unreachable";
+}
+
+int main()
+{
+	string a = classify_day(3, 0);
+	string b = classify_day(6, 5);
+	string c = classify_day(7, 0);
+	string d = classify_day(15, 0);
+	string e = classify_day(0, 0);
+	printf("day 3: %v\n", a);
+	printf("day 6 (bonus): %v\n", b);
+	printf("day 7 (no bonus): %v\n", c);
+	printf("day 15: %v\n", d);
+	printf("day 0: %v\n", e);
+	if(a == "weekday" && b == "bonus weekend" && c == "weekend" &&
+	   d == "out of range" && e == "invalid") {
+		return 0;
+	}
+	return 1;
+}

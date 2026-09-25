@@ -1,0 +1,36 @@
+//Memory test: heap allocation with malloc/free, writing into the
+//buffer through [] indexing from inside a helper function, reading
+//it back in main, and a mutable global (bss) accumulator shared
+//across calls.
+#include <stdio.h>
+#include <stdlib.h>
+
+int calls = 0;
+
+int record(int *buffer, int index, int value)
+{
+	buffer[index] = value;
+	calls = calls + 1;
+	return calls;
+}
+
+int main()
+{
+	int *buffer;
+	int i;
+	int total = 0;
+	buffer = (int *)malloc(5 * sizeof(int));
+	for(i = 0; i < 5; i = i + 1) {
+		record(buffer, i, i * i);
+	}
+	for(i = 0; i < 5; i = i + 1) {
+		total = total + buffer[i];
+	}
+	printf("sum of squares: %v\n", total);
+	printf("record calls: %v\n", calls);
+	free(buffer);
+	if(total == 30 && calls == 5) {
+		return 0;
+	}
+	return 1;
+}

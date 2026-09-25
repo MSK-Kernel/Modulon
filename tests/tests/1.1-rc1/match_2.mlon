@@ -1,0 +1,40 @@
+//Pattern matching test: match as an expression (assigned directly to a
+//variable), driven from a loop, combined with a helper function whose
+//return value is itself produced by a match expression.
+#include <stdio.h>
+
+int fizz_value(int n)
+{
+	return match n % 15 {
+		0: 3;
+		_: match n % 3 {
+			0: 1;
+			_: match n % 5 {
+				0: 2;
+				_: 0;
+			};
+		};
+	};
+}
+
+int main()
+{
+	int i;
+	int total = 0;
+	for(i = 1; i <= 15; i = i + 1) {
+		int code = fizz_value(i);
+		string label = match code {
+			3: "FizzBuzz";
+			1: "Fizz";
+			2: "Buzz";
+			_: "number";
+		};
+		printf("%v: %v\n", i, label);
+		total = total + code;
+	}
+	printf("total: %v\n", total);
+	if(total == 11) {
+		return 0;
+	}
+	return 1;
+}
